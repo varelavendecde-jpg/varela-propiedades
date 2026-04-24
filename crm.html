@@ -309,6 +309,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
     <div class="nav-item" onclick="nav(&#39;negocios&#39;,this)"><span class="nav-icon">◈</span> Negocios</div>
     <div class="nav-item" onclick="nav(&#39;tareas&#39;,this)"><span class="nav-icon">✓</span> Tareas</div>
     <div class="nav-item" onclick="nav('mensajes',this)" id="nav-mensajes"><span class="nav-icon">💬</span> Mensajes <span id="badge-mensajes" style="display:none;background:#EF4444;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px;"></span></div>
+    <div class="nav-item" onclick="nav('marketing-ia',this)"><span class="nav-icon">✨</span> Marketing IA</div>
     <div class="nav-item" onclick="nav(&#39;documentacion&#39;,this)"><span class="nav-icon">📄</span> Documentación</div>
     <div class="nav-item" onclick="nav('tasador',this)"><span class="nav-icon">🏷️</span> Tasador</div>
     <div class="nav-item" onclick="nav('equipo',this)"><span class="nav-icon">🏢</span> Equipo</div>
@@ -1182,7 +1183,7 @@ async function nav(sec,el){
 }
 
 function render(){
-  const r={dashboard:renderDash,contactos:renderContactos,propiedades:renderPropiedades,negocios:renderNegocios,tareas:renderTareas,propietarios:renderPropietarios,documentacion:()=>{},tasador:()=>{},equipo:renderEquipo};
+  const r={dashboard:renderDash,contactos:renderContactos,propiedades:renderPropiedades,negocios:renderNegocios,tareas:renderTareas,propietarios:renderPropietarios,documentacion:()=>{},tasador:()=>{},equipo:renderEquipo,'marketing-ia':renderMarketingIA};
   if(r[secActual])r[secActual]();
 }
 
@@ -3093,6 +3094,7 @@ function abrirFichaPropiedad(id) {
     <button class="btn btn-sm" onclick="copiarEnlace('${x.id}','${x.codigo||''}')">🔗 Compartir</button>
     <button class="btn btn-sm" style="background:#E7F9EE;border-color:#BBF7D0;color:#166534;" onclick="compartirPropiedadWA('${x.id}')">📲 Enviar WA</button>
     ${x.propietario_tel ? `<button class="btn btn-sm" style="background:#E7F9EE;border-color:#BBF7D0;color:#166534;" onclick="enviarWA('${x.propietario_tel}','${x.propietario_nombre||'Propietario'}')">💬 WA Propietario</button>` : ''}
+    <button class="btn btn-sm" style="background:#EEF2FF;border-color:#C7D2FE;color:#4338CA;" onclick="abrirMarketingIA('${x.id}')">✨ IA</button>
     <button class="btn btn-sm" style="background:#FFF3E0;border-color:#FFB74D;color:#E65100;" onclick="generarPDFPropiedad('${x.id}')">📄 Ficha PDF</button>
     <button class="btn btn-sm" style="background:#EDE9FE;border-color:#C4B5FD;color:#5B21B6;" onclick="imprimirAutorizacion('${x.id}')">📋 Autorización</button>
     <button class="btn btn-sm btn-danger" onclick="if(confirm('¿Eliminar?'))borrar('propiedades','${x.id}')">🗑️ Eliminar</button>
@@ -4630,5 +4632,463 @@ function enviarWAProp() {
     </div>
   </div>
 </div>
+
+
+      <!-- ========== INICIO DEL BLOQUE ========== --> y
+      <!-- ========== FIN DEL BLOQUE ========== -->.
+<!-- ========== INICIO DEL BLOQUE ========== -->
+
+<style>
+/* ═══════════ Marketing IA ═══════════ */
+.mia-modal-backdrop { position:fixed; inset:0; background:rgba(30,31,45,0.55); backdrop-filter:blur(2px); z-index:9000; display:none; align-items:center; justify-content:center; padding:24px; }
+.mia-modal-backdrop.show { display:flex; }
+.mia-modal { background:var(--bg-card); border-radius:var(--radius-lg); width:min(720px, 100%); max-height:calc(100vh - 48px); display:flex; flex-direction:column; box-shadow:var(--shadow-lg); overflow:hidden; }
+.mia-modal-header { padding:16px 22px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:#FAFAF8; }
+.mia-modal-title { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:700; color:var(--gris-dark); letter-spacing:1.5px; text-transform:uppercase; }
+.mia-modal-sub { font-size:11px; color:var(--text-3); margin-top:2px; }
+.mia-modal-close { background:none; border:none; font-size:22px; color:var(--text-3); cursor:pointer; width:32px; height:32px; border-radius:6px; }
+.mia-modal-close:hover { background:var(--gris-pale); color:var(--text); }
+.mia-modal-body { padding:18px 22px; overflow-y:auto; flex:1; }
+
+.mia-tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:16px; overflow-x:auto; }
+.mia-tab { padding:9px 14px; font-size:12px; color:var(--text-3); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; font-weight:500; transition:all 0.15s; }
+.mia-tab:hover { color:var(--text); }
+.mia-tab.active { color:var(--gris-dark); border-bottom-color:var(--amarillo); font-weight:600; }
+
+.mia-controls { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
+.mia-tono { display:flex; gap:4px; background:var(--gris-pale); border-radius:6px; padding:3px; }
+.mia-tono-opt { padding:5px 11px; font-size:11.5px; border-radius:4px; cursor:pointer; color:var(--text-2); font-weight:500; }
+.mia-tono-opt.active { background:var(--bg-card); color:var(--gris-dark); box-shadow:0 1px 2px rgba(0,0,0,0.06); }
+
+.mia-output { width:100%; min-height:220px; padding:14px; border:1px solid var(--border-2); border-radius:var(--radius); font-family:'Inter',sans-serif; font-size:13px; line-height:1.65; color:var(--text); resize:vertical; background:var(--bg-card); }
+.mia-output:focus { outline:none; border-color:var(--amarillo-dark); box-shadow:0 0 0 3px rgba(245,230,66,0.15); }
+.mia-output-placeholder { padding:30px 16px; text-align:center; color:var(--text-3); font-size:12.5px; background:var(--bg); border:1px dashed var(--border-2); border-radius:var(--radius); }
+
+.mia-actions { display:flex; gap:8px; margin-top:12px; justify-content:space-between; align-items:center; flex-wrap:wrap; }
+.mia-meta { font-size:10.5px; color:var(--text-3); }
+
+.mia-spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(107,111,138,0.2); border-top-color:var(--gris); border-radius:50%; animation:mia-spin 0.7s linear infinite; vertical-align:middle; margin-right:6px; }
+@keyframes mia-spin { to { transform:rotate(360deg); } }
+
+.mia-hint { background:#FDFBE8; border:1px solid #F5E642; border-radius:6px; padding:10px 12px; font-size:11.5px; color:#6B5400; margin-bottom:14px; }
+
+/* Sección Marketing IA del sidebar */
+#sec-marketing-ia .mia-empty { text-align:center; padding:60px 20px; color:var(--text-3); }
+#sec-marketing-ia .mia-empty-icon { font-size:48px; margin-bottom:12px; opacity:0.4; }
+.mia-prop-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
+.mia-prop-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px; box-shadow:var(--shadow); cursor:pointer; transition:all 0.15s; }
+.mia-prop-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-lg); border-color:var(--amarillo-dark); }
+.mia-prop-thumb { width:100%; height:130px; border-radius:var(--radius); background:var(--gris-pale); overflow:hidden; margin-bottom:10px; display:flex; align-items:center; justify-content:center; font-size:40px; }
+.mia-prop-thumb img { width:100%; height:100%; object-fit:cover; }
+.mia-prop-titulo { font-weight:600; font-size:13px; color:var(--text); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mia-prop-meta { font-size:11px; color:var(--text-3); }
+.mia-prop-btn { margin-top:10px; width:100%; padding:8px; background:var(--amarillo); border:1px solid var(--amarillo-dark); color:var(--gris-dark); border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
+.mia-prop-btn:hover { background:var(--amarillo-dark); }
+</style>
+
+<!-- Sección Marketing IA (se inserta junto a las otras sec-*) -->
+<div id="sec-marketing-ia" class="hidden">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">✨ Marketing IA</div>
+      <div class="topbar-sub">Generá captions, descripciones y mensajes listos para publicar</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="mia-hint" style="margin-bottom:18px;">
+      💡 Elegí una propiedad para generar contenido: caption para Instagram/Facebook, mensaje de WhatsApp, descripción para portales y más.
+    </div>
+    <div id="mia-prop-grid" class="mia-prop-grid"></div>
+  </div>
+</div>
+
+<!-- Modal de generación -->
+<div id="mia-modal" class="mia-modal-backdrop" onclick="if(event.target===this)cerrarMarketingIA()">
+  <div class="mia-modal">
+    <div class="mia-modal-header">
+      <div>
+        <div class="mia-modal-title" id="mia-titulo">✨ Generador IA</div>
+        <div class="mia-modal-sub" id="mia-subtitulo">Cargando propiedad…</div>
+      </div>
+      <button class="mia-modal-close" onclick="cerrarMarketingIA()">✕</button>
+    </div>
+    <div class="mia-modal-body">
+      <div class="mia-tabs" id="mia-tabs">
+        <div class="mia-tab active" data-tipo="instagram">📸 Instagram</div>
+        <div class="mia-tab" data-tipo="facebook">📘 Facebook</div>
+        <div class="mia-tab" data-tipo="whatsapp">💬 WhatsApp</div>
+        <div class="mia-tab" data-tipo="portal">🌐 Portal</div>
+        <div class="mia-tab" data-tipo="email">📧 Email</div>
+      </div>
+
+      <div class="mia-controls">
+        <div style="font-size:11.5px; color:var(--text-3); margin-right:4px;">Tono:</div>
+        <div class="mia-tono" id="mia-tono">
+          <div class="mia-tono-opt active" data-tono="cercano">Cercano</div>
+          <div class="mia-tono-opt" data-tono="profesional">Profesional</div>
+          <div class="mia-tono-opt" data-tono="lujo">Lujo</div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="mia-btn-generar" onclick="generarContenidoIA()" style="margin-left:auto;">
+          ⚡ Generar
+        </button>
+      </div>
+
+      <div id="mia-output-wrap">
+        <div class="mia-output-placeholder" id="mia-placeholder">
+          Apretá <strong>⚡ Generar</strong> para crear el contenido con IA.
+        </div>
+        <textarea class="mia-output" id="mia-output" style="display:none;" placeholder="El contenido generado va a aparecer acá…"></textarea>
+      </div>
+
+      <div class="mia-actions">
+        <div class="mia-meta" id="mia-meta"></div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-sm" onclick="generarContenidoIA()" id="mia-btn-regenerar" style="display:none;">🔄 Regenerar</button>
+          <button class="btn btn-primary btn-sm" onclick="copiarContenidoIA()" id="mia-btn-copiar" style="display:none;">📋 Copiar</button>
+          <button class="btn btn-sm" onclick="enviarWAContenidoIA()" id="mia-btn-wa" style="display:none; background:#E7F9EE; border-color:#BBF7D0; color:#166534;">📲 Enviar WA</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════ CONFIG ═══════════════
+// La Edge Function vive en:
+//   https://<tu-project-ref>.supabase.co/functions/v1/claude
+// Usamos la SUPABASE_URL que ya está declarada arriba en el archivo.
+const CLAUDE_ENDPOINT = SUPABASE_URL + '/functions/v1/claude';
+
+// Estado del modal
+const _mia = {
+  propiedadId: null,
+  propiedad: null,
+  tipoActivo: 'instagram',
+  tonoActivo: 'cercano',
+  contenidos: {}, // cache de lo ya generado por tipo+tono
+  generando: false,
+};
+
+// ═══════════════ SECCIÓN EN SIDEBAR ═══════════════
+function renderMarketingIA() {
+  const grid = document.getElementById('mia-prop-grid');
+  if (!grid) return;
+  const props = (cache.propiedades || []).filter(p => p.estado !== 'Vendida' && p.estado !== 'Alquilada');
+
+  if (!props.length) {
+    grid.innerHTML = `
+      <div class="mia-empty" style="grid-column:1/-1;">
+        <div class="mia-empty-icon">🏠</div>
+        <div>No hay propiedades disponibles todavía.<br>Cargá una propiedad para empezar a generar contenido.</div>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = props.map(p => {
+    const foto = (p.fotos && p.fotos[0]) ? `<img src="${p.fotos[0]}">` : (EMOJIS[p.tipo] || '🏠');
+    const precio = p.precio ? 'USD ' + Number(p.precio).toLocaleString('es-AR') : 'Consultar';
+    const ubic = [p.zona, p.ciudad].filter(Boolean).join(', ');
+    return `
+      <div class="mia-prop-card" onclick="abrirMarketingIA('${p.id}')">
+        <div class="mia-prop-thumb">${foto}</div>
+        <div class="mia-prop-titulo">${p.titulo || p.tipo || 'Sin título'}</div>
+        <div class="mia-prop-meta">${precio}${ubic ? ' · ' + ubic : ''}</div>
+        <button class="mia-prop-btn" onclick="event.stopPropagation(); abrirMarketingIA('${p.id}')">✨ Generar contenido</button>
+      </div>`;
+  }).join('');
+}
+
+// ═══════════════ MODAL ═══════════════
+function abrirMarketingIA(propiedadId) {
+  const p = (cache.propiedades || []).find(x => x.id === propiedadId);
+  if (!p) { alert('Propiedad no encontrada'); return; }
+
+  _mia.propiedadId = propiedadId;
+  _mia.propiedad = p;
+  _mia.tipoActivo = 'instagram';
+  _mia.tonoActivo = 'cercano';
+  _mia.contenidos = {};
+
+  document.getElementById('mia-titulo').textContent = '✨ ' + (p.titulo || p.tipo || 'Propiedad');
+  const precio = p.precio ? 'USD ' + Number(p.precio).toLocaleString('es-AR') : 'Sin precio';
+  const ubic = [p.direccion, p.zona, p.ciudad].filter(Boolean).join(', ');
+  document.getElementById('mia-subtitulo').textContent = [precio, ubic].filter(Boolean).join(' · ');
+
+  // Reset UI
+  document.querySelectorAll('#mia-tabs .mia-tab').forEach(t => t.classList.toggle('active', t.dataset.tipo === 'instagram'));
+  document.querySelectorAll('#mia-tono .mia-tono-opt').forEach(t => t.classList.toggle('active', t.dataset.tono === 'cercano'));
+  _miaResetOutput();
+
+  document.getElementById('mia-modal').classList.add('show');
+}
+
+function cerrarMarketingIA() {
+  document.getElementById('mia-modal').classList.remove('show');
+}
+
+function _miaResetOutput() {
+  document.getElementById('mia-placeholder').style.display = 'block';
+  document.getElementById('mia-output').style.display = 'none';
+  document.getElementById('mia-output').value = '';
+  document.getElementById('mia-btn-copiar').style.display = 'none';
+  document.getElementById('mia-btn-regenerar').style.display = 'none';
+  document.getElementById('mia-btn-wa').style.display = 'none';
+  document.getElementById('mia-meta').textContent = '';
+}
+
+function _miaShowOutput(texto) {
+  document.getElementById('mia-placeholder').style.display = 'none';
+  const ta = document.getElementById('mia-output');
+  ta.style.display = 'block';
+  ta.value = texto;
+  // Ajustar altura al contenido
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight + 4, 500) + 'px';
+  document.getElementById('mia-btn-copiar').style.display = 'inline-block';
+  document.getElementById('mia-btn-regenerar').style.display = 'inline-block';
+  document.getElementById('mia-btn-wa').style.display = _mia.tipoActivo === 'whatsapp' ? 'inline-block' : 'none';
+}
+
+// Tabs y tono
+document.addEventListener('click', (e) => {
+  const tab = e.target.closest('#mia-tabs .mia-tab');
+  if (tab) {
+    document.querySelectorAll('#mia-tabs .mia-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    _mia.tipoActivo = tab.dataset.tipo;
+    // Si ya tenemos algo generado para este combo, mostrarlo
+    const cached = _mia.contenidos[_mia.tipoActivo + ':' + _mia.tonoActivo];
+    if (cached) _miaShowOutput(cached); else _miaResetOutput();
+    return;
+  }
+  const tono = e.target.closest('#mia-tono .mia-tono-opt');
+  if (tono) {
+    document.querySelectorAll('#mia-tono .mia-tono-opt').forEach(t => t.classList.remove('active'));
+    tono.classList.add('active');
+    _mia.tonoActivo = tono.dataset.tono;
+    const cached = _mia.contenidos[_mia.tipoActivo + ':' + _mia.tonoActivo];
+    if (cached) _miaShowOutput(cached); else _miaResetOutput();
+  }
+});
+
+// ═══════════════ PROMPTING ═══════════════
+function _miaDatosPropiedad() {
+  const p = _mia.propiedad || {};
+  const amenitiesLabels = {
+    'amenity-jardin':'parque/jardín','amenity-deck':'deck exterior','amenity-parrilla':'parrilla',
+    'amenity-quincho':'quincho','amenity-piscina':'piscina','amenity-solarium':'solarium',
+    'amenity-riego':'riego automático','amenity-terraza':'terraza','amenity-balcon':'balcón',
+    'amenity-vista-bosque':'vista al bosque','amenity-ac':'aire acondicionado',
+    'amenity-calefaccion':'calefacción','amenity-losa-radiante':'losa radiante',
+    'amenity-hogar':'hogar/chimenea','amenity-dvh':'ventanas DVH','amenity-blackout':'cortinas blackout',
+    'amenity-cochera-cub':'cochera cubierta','amenity-cochera-desc':'cochera descubierta',
+    'amenity-lavadero':'lavadero','amenity-baulera':'baulera','amenity-dependencia':'dependencia de servicio',
+    'amenity-wifi':'WiFi','amenity-alarma':'alarma','amenity-camaras':'cámaras',
+    'amenity-porton':'portón automático','amenity-cerca-mar':'cerca del mar',
+    'amenity-forestado':'entorno forestado','amenity-sin-salida':'calle sin salida',
+    'amenity-mascotas':'apto mascotas','amenity-renta':'ideal renta turística'
+  };
+  const amen = (p.amenities || []).map(a => amenitiesLabels[a] || a);
+  return {
+    titulo: p.titulo || '',
+    tipo: p.tipo || '',
+    operacion: p.operacion || 'Venta',
+    precio: p.precio ? 'USD ' + Number(p.precio).toLocaleString('es-AR') : '',
+    expensas: p.expensas || '',
+    direccion: [p.direccion, p.zona, p.ciudad, p.provincia].filter(Boolean).join(', '),
+    superficie_lote: p.mts ? p.mts + ' m²' : '',
+    superficie_cubierta: p.mts_cubiertos ? p.mts_cubiertos + ' m²' : '',
+    superficie_semicubierta: p.mts_semicubiertos ? p.mts_semicubiertos + ' m²' : '',
+    ambientes: p.ambientes || '',
+    dormitorios: p.dormitorios || '',
+    banios: p.banios || '',
+    plantas: p.plantas || '',
+    antiguedad: p.antiguedad || '',
+    descripcion_existente: p.descripcion || '',
+    amenities: amen.join(', '),
+    codigo: p.codigo || '',
+  };
+}
+
+function _miaPrompt(tipo, tono) {
+  const d = _miaDatosPropiedad();
+  const datos = Object.entries(d).filter(([,v]) => v !== '' && v !== null && v !== undefined)
+    .map(([k,v]) => `- ${k.replaceAll('_',' ')}: ${v}`).join('\n');
+
+  const tonos = {
+    cercano: 'cercano, amable y conversacional, como si le hablaras a un amigo. Sin formalidades.',
+    profesional: 'profesional, claro y directo. Informativo pero cálido. Sin exageraciones.',
+    lujo: 'aspiracional y premium. Destacá exclusividad, diseño y experiencia de vida. Vocabulario refinado pero sin ser pedante.'
+  };
+
+  const base = `Sos un redactor experto en marketing inmobiliario para Argentina, específicamente para Villa Carlos Paz y zona (Córdoba). La inmobiliaria se llama Varela Propiedades.
+
+Datos de la propiedad:
+${datos}
+
+Tono: ${tonos[tono] || tonos.cercano}
+
+Reglas generales:
+- Escribí en español rioplatense neutro (no uses "tú", usá "vos" cuando haya trato directo).
+- NO inventes características que no estén en los datos.
+- Si falta información clave, omitila en lugar de rellenar.
+- Mencioná el precio solo si está en los datos.
+- No uses frases gastadas tipo "la casa de tus sueños" o "no dejes pasar esta oportunidad".
+`;
+
+  const tipos = {
+    instagram: `Generá UN caption para Instagram que:
+- Tenga un hook potente en la primera línea (máx 60 caracteres) con 1 emoji al inicio.
+- Tenga 3-4 párrafos cortos separados por saltos de línea en blanco.
+- Use emojis con mesura (máx 5 en total, que aporten).
+- Termine con un CTA claro ("Escribinos", "Coordinamos visita", etc.).
+- Al final incluya 10-15 hashtags relevantes locales y temáticos (#VillaCarlosPaz, #CarlosPaz, #CordobaArgentina, #Inmobiliaria, etc.) en una sola línea.
+- Longitud total: 180-280 palabras.
+
+Devolvé SOLO el caption, sin comillas, sin encabezados, sin explicaciones. Listo para pegar en Instagram.`,
+
+    facebook: `Generá UN posteo para Facebook que:
+- Arranque con una oración gancho (sin emoji raro al inicio, como mucho 1 emoji).
+- Tenga 4-5 párrafos cortos, ritmo narrativo. Facebook lee distinto que Instagram: más texto, menos hashtags.
+- Incluya bullets con los datos clave (ambientes, m², amenities más relevantes).
+- Cierre con un CTA y los datos de contacto de la inmobiliaria (placeholder: "📞 Consultanos por WhatsApp").
+- Máximo 3 hashtags al final (Facebook los usa poco).
+
+Devolvé SOLO el posteo listo para publicar.`,
+
+    whatsapp: `Generá un mensaje de WhatsApp BREVE para enviar a un cliente interesado que:
+- Abra con un saludo cálido.
+- En 3-5 renglones describa la propiedad con los datos más vendedores.
+- Use formato WhatsApp (*negrita* con asteriscos, saltos de línea).
+- Máximo 2 emojis en total.
+- Cierre invitando a coordinar una visita.
+- Longitud: 70-120 palabras. NO hashtags.
+
+Devolvé SOLO el mensaje, sin explicaciones.`,
+
+    portal: `Generá una descripción para publicar en un portal inmobiliario (Zonaprop, Argenprop, MercadoLibre):
+- SIN emojis ni hashtags (los portales los filtran).
+- Título (máx 60 caracteres) en la primera línea.
+- Luego un párrafo introductorio con la propuesta de valor (3-4 oraciones).
+- Luego una sección con los datos estructurados usando este formato:
+  CARACTERÍSTICAS:
+  • Ambiente 1
+  • Ambiente 2
+  ...
+- Luego un párrafo de cierre sobre la zona y accesibilidad (2-3 oraciones).
+- Terminá con: "Código de referencia: [código]" si hay código disponible.
+- Longitud total: 250-400 palabras. Español formal pero legible.
+
+Devolvé SOLO la descripción lista para copiar al portal.`,
+
+    email: `Generá un email personalizado para un potencial comprador/inquilino que:
+- Asunto en la primera línea con el formato: "Asunto: ..."
+- Línea en blanco.
+- Saludo: "Hola {nombre}," (dejá {nombre} como placeholder literal).
+- Cuerpo: 2-3 párrafos. Presentación breve, descripción de la propiedad, por qué puede interesarle.
+- Cierre con invitación a coordinar visita o responder si quiere más info.
+- Firma genérica: "Saludos,\\nEquipo Varela Propiedades"
+- SIN emojis. Español formal pero cordial.
+- Longitud: 150-220 palabras.
+
+Devolvé SOLO el email, incluyendo la línea "Asunto: ..." al principio.`
+  };
+
+  return base + '\n' + (tipos[tipo] || tipos.instagram);
+}
+
+// ═══════════════ LLAMADA A LA EDGE FUNCTION ═══════════════
+async function generarContenidoIA() {
+  if (_mia.generando) return;
+  _mia.generando = true;
+  const btn = document.getElementById('mia-btn-generar');
+  const btnRegen = document.getElementById('mia-btn-regenerar');
+  const origText = btn.textContent;
+  btn.innerHTML = '<span class="mia-spinner"></span>Generando…';
+  btn.disabled = true;
+  btnRegen.disabled = true;
+  document.getElementById('mia-placeholder').style.display = 'none';
+  document.getElementById('mia-output').style.display = 'block';
+  document.getElementById('mia-output').value = '';
+  document.getElementById('mia-output').placeholder = 'Claude está escribiendo…';
+
+  const prompt = _miaPrompt(_mia.tipoActivo, _mia.tonoActivo);
+  const t0 = performance.now();
+
+  try {
+    const res = await fetch(CLAUDE_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'apikey': SUPABASE_KEY,
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }]
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error('HTTP ' + res.status + ': ' + err);
+    }
+
+    const data = await res.json();
+    const texto = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+
+    if (!texto) throw new Error('La respuesta vino vacía');
+
+    _mia.contenidos[_mia.tipoActivo + ':' + _mia.tonoActivo] = texto;
+    _miaShowOutput(texto);
+
+    const dt = Math.round(performance.now() - t0);
+    const usage = data.usage || {};
+    const tokens = (usage.input_tokens || 0) + (usage.output_tokens || 0);
+    document.getElementById('mia-meta').textContent = `✓ Generado en ${(dt/1000).toFixed(1)}s · ${tokens} tokens`;
+  } catch (e) {
+    console.error(e);
+    document.getElementById('mia-output').style.display = 'none';
+    document.getElementById('mia-placeholder').style.display = 'block';
+    document.getElementById('mia-placeholder').innerHTML = `<div style="color:#B91C1C;"><strong>Error:</strong> ${e.message}<br><br><small>Revisá que la Edge Function <code>claude</code> esté desplegada y que la ANTHROPIC_API_KEY esté configurada.</small></div>`;
+  } finally {
+    _mia.generando = false;
+    btn.innerHTML = origText;
+    btn.disabled = false;
+    btnRegen.disabled = false;
+  }
+}
+
+function copiarContenidoIA() {
+  const ta = document.getElementById('mia-output');
+  ta.select();
+  navigator.clipboard.writeText(ta.value).then(() => {
+    const btn = document.getElementById('mia-btn-copiar');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copiado';
+    btn.style.background = '#DCFCE7';
+    btn.style.borderColor = '#86EFAC';
+    btn.style.color = '#166534';
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.style.background = '';
+      btn.style.borderColor = '';
+      btn.style.color = '';
+    }, 1400);
+  });
+}
+
+function enviarWAContenidoIA() {
+  const texto = document.getElementById('mia-output').value;
+  if (!texto) return;
+  // Si la propiedad tiene tel de propietario no lo usamos (es para clientes).
+  // Abrimos WhatsApp Web con el texto precargado y que el user elija a quién mandarlo.
+  const url = 'https://wa.me/?text=' + encodeURIComponent(texto);
+  window.open(url, '_blank');
+}
+</script>
+
+<!-- ========== FIN DEL BLOQUE ========== -->
 
 </body></html>
