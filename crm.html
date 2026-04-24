@@ -4907,6 +4907,7 @@ function _miaDatosPropiedad() {
     descripcion_existente: p.descripcion || '',
     amenities: amen.join(', '),
     codigo: p.codigo || '',
+    url_publica: 'https://www.varelapropiedadescde.com.ar/?propiedad=' + p.id,
   };
 }
 
@@ -4921,7 +4922,14 @@ function _miaPrompt(tipo, tono) {
     lujo: 'aspiracional y premium. Destacá exclusividad, diseño y experiencia de vida. Vocabulario refinado pero sin ser pedante.'
   };
 
-  const base = `Sos un redactor experto en marketing inmobiliario para Argentina, específicamente para Villa Carlos Paz y zona (Córdoba). La inmobiliaria se llama Varela Propiedades.
+  const base = `Sos un redactor experto en marketing inmobiliario para Costa del Este (Partido de La Costa, Provincia de Buenos Aires, Argentina). La inmobiliaria se llama Varela Propiedades, su handle de Instagram es @varelapropiedadescde.
+
+Contexto de la zona:
+- Costa del Este es un balneario de la costa atlántica argentina, sobre la ruta 11, caracterizado por su entorno forestado (bosque con pinos, eucaliptos) y cercanía al mar.
+- Forma parte del Partido de La Costa, junto con Las Toninas, San Bernardo, Mar de Ajó, Aguas Verdes, Santa Teresita, Mar del Tuyú. Son balnearios familiares, de menor densidad que Pinamar o Villa Gesell.
+- Perfil del comprador típico: familia argentina que busca casa de veraneo, segunda vivienda, o inversión para renta de temporada.
+- Ticket promedio moderado (USD 30k-150k para lotes y casas, según zona y tamaño).
+- Diferenciales clave del balneario: bosque, tranquilidad, playas amplias, cercanía a Buenos Aires (~370 km, 4-5 horas por ruta).
 
 Datos de la propiedad:
 ${datos}
@@ -4930,10 +4938,11 @@ Tono: ${tonos[tono] || tonos.cercano}
 
 Reglas generales:
 - Escribí en español rioplatense neutro (no uses "tú", usá "vos" cuando haya trato directo).
-- NO inventes características que no estén en los datos.
-- Si falta información clave, omitila en lugar de rellenar.
+- NO inventes características que no estén en los datos. Si falta información clave, omitila en lugar de rellenar.
 - Mencioná el precio solo si está en los datos.
 - No uses frases gastadas tipo "la casa de tus sueños" o "no dejes pasar esta oportunidad".
+- Si la propiedad está en bosque o forestada, destacá ese diferencial (es muy valorado en la zona).
+- Si está cerca del mar (menos de 15 cuadras), mencionalo con la distancia exacta.
 `;
 
   const tipos = {
@@ -4941,9 +4950,20 @@ Reglas generales:
 - Tenga un hook potente en la primera línea (máx 60 caracteres) con 1 emoji al inicio.
 - Tenga 3-4 párrafos cortos separados por saltos de línea en blanco.
 - Use emojis con mesura (máx 5 en total, que aporten).
-- Termine con un CTA claro ("Escribinos", "Coordinamos visita", etc.).
-- Al final incluya 10-15 hashtags relevantes locales y temáticos (#VillaCarlosPaz, #CarlosPaz, #CordobaArgentina, #Inmobiliaria, etc.) en una sola línea.
-- Longitud total: 180-280 palabras.
+- Termine con un CTA claro que invite a escribir por DM, mencione "link en bio" para ver la ficha completa, y etiquete @varelapropiedadescde. Ejemplo: "Escribinos por DM o mirá la ficha completa en el link de la bio 👆".
+- NO pongas el link largo directamente dentro del caption (IG los deja inactivos y queda feo). Solo referí a "link en bio".
+- Al final incluya 12-15 hashtags en una sola línea, eligiendo inteligentemente según el tipo y características de la propiedad. Usá estas capas:
+  * Base geográfica (SIEMPRE incluir): #CostaDelEste #PartidoDeLaCosta #CostaAtlantica
+  * Balnearios vecinos (incluir al menos 3): #LasToninas #SanBernardo #MarDeAjó #AguasVerdes #SantaTeresita #MarDelTuyú
+  * Según tipo de propiedad:
+    · Lote/Terreno → #LoteEnLaCosta #TerrenoEnLaCosta #InversionCosta
+    · Casa → #CasaEnLaCosta #CasaEnVenta #CasaEnLaCostaAtlantica
+    · Depto → #DepartamentoEnLaCosta #DeptoEnVenta
+  * Vibe/producto (elegí 2-3 relevantes): #VivirEnLaCosta #CostaBonaerense #Playa #Bosque #VacacionesEnLaCosta #CasaDeVerano #Inversion
+  * Operación (según corresponda): #CasaEnVenta / #LoteEnVenta / #AlquilerTemporario / #AlquilerTemporarioCostaDelEste
+  * Marca (incluir al final): #VarelaPropiedades
+- Si la propiedad está forestada, incluí #Bosque. Si está cerca del mar, incluí #Playa. Si es para renta de temporada, incluí #AlquilerTemporarioCostaDelEste.
+- Longitud total del caption (sin contar hashtags): 180-280 palabras.
 
 Devolvé SOLO el caption, sin comillas, sin encabezados, sin explicaciones. Listo para pegar en Instagram.`,
 
@@ -4951,20 +4971,24 @@ Devolvé SOLO el caption, sin comillas, sin encabezados, sin explicaciones. List
 - Arranque con una oración gancho (sin emoji raro al inicio, como mucho 1 emoji).
 - Tenga 4-5 párrafos cortos, ritmo narrativo. Facebook lee distinto que Instagram: más texto, menos hashtags.
 - Incluya bullets con los datos clave (ambientes, m², amenities más relevantes).
-- Cierre con un CTA y los datos de contacto de la inmobiliaria (placeholder: "📞 Consultanos por WhatsApp").
-- Máximo 3 hashtags al final (Facebook los usa poco).
+- Cierre con un CTA y los datos de contacto de la inmobiliaria (placeholder: "📞 Consultanos por WhatsApp · IG: @varelapropiedadescde").
+- OBLIGATORIO: antes de los hashtags, incluí una línea con el link: "👉 Mirá la ficha completa: {url_publica}" (reemplazando {url_publica} por la URL real de los datos).
+- Al final incluí exactamente 3 hashtags: #CostaDelEste + uno temático del tipo de propiedad (ej. #LoteEnLaCosta, #CasaEnLaCosta) + #VarelaPropiedades.
 
 Devolvé SOLO el posteo listo para publicar.`,
 
-    whatsapp: `Generá un mensaje de WhatsApp BREVE para enviar a un cliente interesado que:
-- Abra con un saludo cálido.
-- En 3-5 renglones describa la propiedad con los datos más vendedores.
-- Use formato WhatsApp (*negrita* con asteriscos, saltos de línea).
-- Máximo 2 emojis en total.
-- Cierre invitando a coordinar una visita.
-- Longitud: 70-120 palabras. NO hashtags.
+    whatsapp: `Generá un mensaje de WhatsApp BREVE para difundir en un grupo tipo "Radar Inmobiliario" de oportunidades:
+- Abrí con un hook que llame la atención (ej: "🔥 Nueva oportunidad en Costa del Este", "📍 Te dejo esta joyita que entró esta semana", etc).
+- En 3-5 renglones describí la propiedad con los datos más vendedores (destacá bosque/cerca del mar si corresponde).
+- Usá formato WhatsApp: *negrita* con asteriscos para resaltar el precio y datos clave, saltos de línea entre ideas.
+- Máximo 2-3 emojis en total.
+- OBLIGATORIO: cerrá el mensaje con una línea que diga exactamente:
+  👉 Más info y fotos: {url_publica}
+  (reemplazando {url_publica} por la URL real que está en los datos).
+- Antes del link puede haber un CTA tipo "Consultanos por privado" o "Agendá tu visita".
+- Longitud total (sin contar el link): 80-130 palabras. NO hashtags.
 
-Devolvé SOLO el mensaje, sin explicaciones.`,
+Devolvé SOLO el mensaje, listo para pegar en el grupo.`,
 
     portal: `Generá una descripción para publicar en un portal inmobiliario (Zonaprop, Argenprop, MercadoLibre):
 - SIN emojis ni hashtags (los portales los filtran).
@@ -4975,17 +4999,18 @@ Devolvé SOLO el mensaje, sin explicaciones.`,
   • Ambiente 1
   • Ambiente 2
   ...
-- Luego un párrafo de cierre sobre la zona y accesibilidad (2-3 oraciones).
+- Luego un párrafo de cierre sobre la zona y accesibilidad. Si corresponde, mencioná: distancia al mar, entorno forestado, cercanía a otros balnearios (Las Toninas, San Bernardo), acceso por ruta 11, distancia aproximada a CABA (~370 km). 2-3 oraciones.
 - Terminá con: "Código de referencia: [código]" si hay código disponible.
 - Longitud total: 250-400 palabras. Español formal pero legible.
 
-Devolvé SOLO la descripción lista para copiar al portal.`,
+Devolvé SOLO la descripción lista para copiar al portal.`,,
 
     email: `Generá un email personalizado para un potencial comprador/inquilino que:
 - Asunto en la primera línea con el formato: "Asunto: ..."
 - Línea en blanco.
 - Saludo: "Hola {nombre}," (dejá {nombre} como placeholder literal).
 - Cuerpo: 2-3 párrafos. Presentación breve, descripción de la propiedad, por qué puede interesarle.
+- Incluí el link de la ficha completa así: "Podés ver la ficha completa con todas las fotos acá: {url_publica}" (reemplazando {url_publica} por la URL real).
 - Cierre con invitación a coordinar visita o responder si quiere más info.
 - Firma genérica: "Saludos,\\nEquipo Varela Propiedades"
 - SIN emojis. Español formal pero cordial.
