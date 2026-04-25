@@ -347,13 +347,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const COEF_CIERRE_MIN = 0.80; // -20%
 const COEF_CIERRE_MAX = 0.85; // -15%
 
-// Categorías ML (Argentina, Venta)
-const CATEGORIAS_ML = {
-  casa:   'MLA1468',  // Casas en venta
-  duplex: 'MLA1468',  // Los duplex se publican como casas en ML
-  lote:   'MLA1473',  // Lotes en venta
-  depto:  'MLA1474'   // Departamentos en venta
-};
+// (Las categorías ML viven server-side en la Edge Function)
 
 // Multiplicadores de zona Costa del Este
 // Frente al Mar = Av. Costanera (literal, primera línea)
@@ -413,61 +407,37 @@ function percentil(arr, p) {
 }
 
 // ════════════════════════════════════════════════════════════
-// EXTRACCIÓN DE M² DE UN ITEM ML
+// (extraerMetros vive ahora server-side en la Edge Function)
 // ════════════════════════════════════════════════════════════
-function extraerMetros(item, tipo) {
-  // ML usa varios IDs según subcategoría. Buscamos cualquiera que tenga m².
-  const attrs = item.attributes || [];
-  const candidatos = tipo === 'lote'
-    ? ['TOTAL_AREA', 'LAND_AREA', 'SURFACE_TOTAL']
-    : ['COVERED_AREA', 'TOTAL_AREA', 'SURFACE_COVERED', 'SURFACE_TOTAL'];
-
-  for (const key of candidatos) {
-    const attr = attrs.find(a => (a.id || '').includes(key));
-    if (attr) {
-      const val = parseFloat(String(attr.value_name || '').replace(/[^\d.]/g, ''));
-      if (val > 0 && val < 10000) return val;
-    }
-  }
-  return null;
-}
 
 // ════════════════════════════════════════════════════════════
-// LLAMADA A LA API DE MERCADO LIBRE (pública, sin token)
+// LLAMADA A LA EDGE FUNCTION 'tasador-ml'
+// (la Edge Function maneja el OAuth + filtros + outliers server-side)
 // ════════════════════════════════════════════════════════════
 async function buscarComparablesML(tipo, m2Usuario) {
-  const categoria = CATEGORIAS_ML[tipo];
-  // Búsqueda por texto + categoría. ML hace match en título y atributos.
-  const query = encodeURIComponent('Costa del Este');
-  const url = `https://api.mercadolibre.com/sites/MLA/search?category=${categoria}&q=${query}&limit=50`;
+  const url = `${SUPABASE_URL}/functions/v1/tasador-ml`;
 
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error('Error al consultar Mercado Libre');
-  const data = await resp.json();
-  const items = data.results || [];
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'apikey': SUPABASE_KEY
+    },
+    body: JSON.stringify({ tipo, m2: m2Usuario })
+  });
 
-  // Procesamos: extraemos precio en USD y precio/m²
-  const comparables = [];
-  for (const item of items) {
-    // Sólo USD (los pesos en inmuebles suelen ser publicaciones erróneas)
-    if (item.currency_id !== 'USD') continue;
-    const precio = item.price;
-    if (!precio || precio < 5000 || precio > 2000000) continue; // descarte de outliers obvios
-
-    const metros = extraerMetros(item, tipo);
-    if (!metros) continue;
-
-    // Filtro de relevancia: comparables con m² entre 50%-200% del usuario
-    if (m2Usuario && (metros < m2Usuario * 0.5 || metros > m2Usuario * 2.0)) continue;
-
-    const precioM2 = precio / metros;
-    // Outliers de precio/m² (rango razonable Costa del Este: USD 400-3500)
-    if (precioM2 < 200 || precioM2 > 5000) continue;
-
-    comparables.push({ precio, metros, precioM2, titulo: item.title });
+  if (!resp.ok) {
+    const errTxt = await resp.text();
+    console.error('[tasador-ml] HTTP', resp.status, errTxt);
+    throw new Error(`Error ${resp.status} al consultar Mercado Libre`);
   }
 
-  return comparables;
+  const data = await resp.json();
+  if (!data.ok) throw new Error(data.error || 'Error desconocido');
+
+  // La Edge Function ya devuelve los comparables filtrados y limpios
+  return data.comparables || [];
 }
 
 // ════════════════════════════════════════════════════════════
