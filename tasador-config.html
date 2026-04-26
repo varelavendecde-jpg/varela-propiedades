@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calibración Tasador · Varela</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --amarillo: #F5E642;
+  --amarillo-dark: #D4C520;
+  --amarillo-pale: #FDFBE8;
+  --amarillo-light: #FBF5A0;
+  --gris: #6B6F8A;
+  --gris-dark: #3D3F52;
+  --gris-darker: #2A2B38;
+  --bg: #FAF9F5;
+  --bg-card: #FFFFFF;
+  --text: #2E2F3E;
+  --text-2: #6B6F8A;
+  --text-3: #A0A3B5;
+  --border: rgba(107,111,138,0.12);
+  --shadow: 0 2px 12px rgba(60,62,82,0.06);
+  --radius: 10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+
+.gate{display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px;padding:30px;text-align:center;}
+.gate h2{font-family:'Playfair Display',serif;color:var(--gris-dark);}
+.gate a{color:var(--amarillo-dark);font-weight:600;text-decoration:none;background:var(--amarillo);padding:10px 22px;border-radius:8px;color:var(--gris-darker);}
+.gate a:hover{background:var(--amarillo-light);}
+
+.layout{display:grid;grid-template-columns:300px 1fr;min-height:100vh;}
+@media(max-width:900px){.layout{grid-template-columns:1fr;}}
+
+.sidebar{background:var(--gris-darker);color:#fff;padding:24px 18px;}
+.brand{background:var(--amarillo);border-radius:6px;padding:10px 14px;display:inline-block;margin-bottom:18px;}
+.brand-name{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--gris-dark);letter-spacing:3px;text-transform:uppercase;line-height:1;}
+.brand-sub{font-size:9px;letter-spacing:2.5px;color:var(--gris-dark);text-transform:uppercase;margin-top:2px;font-weight:600;opacity:0.7;}
+.sidebar h3{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:2px;font-size:13px;color:var(--amarillo);margin-bottom:14px;font-weight:600;}
+.sidebar p{color:rgba(255,255,255,0.55);font-size:12.5px;line-height:1.7;margin-bottom:14px;}
+.sidebar a.back{color:var(--amarillo);text-decoration:none;font-size:13px;display:inline-block;margin-top:18px;}
+.sidebar a.back:hover{text-decoration:underline;}
+
+.main{padding:30px 36px;max-width:1100px;}
+.main h1{font-family:'Playfair Display',serif;font-size:28px;color:var(--gris-dark);margin-bottom:6px;}
+.main .lead{color:var(--text-2);font-size:14px;margin-bottom:24px;line-height:1.6;}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.tab{padding:11px 18px;cursor:pointer;font-size:13px;color:var(--text-2);font-weight:600;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab.active{color:var(--gris-dark);border-bottom-color:var(--amarillo-dark);}
+.tab:hover{color:var(--gris-dark);}
+
+/* Sección variables */
+.cat{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;box-shadow:var(--shadow);}
+.cat-header{padding:13px 18px;background:#FAFAF8;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.cat-title{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:1.5px;font-size:13px;font-weight:600;color:var(--gris-dark);}
+.cat-desc{font-size:11px;color:var(--text-3);}
+.cat-body{padding:8px 0;}
+
+.var-row{display:grid;grid-template-columns:1fr 130px 90px;gap:12px;align-items:center;padding:8px 18px;border-bottom:1px solid #F4F3EE;}
+.var-row:last-child{border-bottom:none;}
+.var-label{font-size:13px;color:var(--text);}
+.var-help{font-size:11px;color:var(--text-3);margin-top:2px;}
+.var-input{padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;text-align:right;outline:none;background:var(--bg);}
+.var-input:focus{border-color:var(--amarillo-dark);background:#fff;box-shadow:0 0 0 2px rgba(245,230,66,0.18);}
+.var-input.dirty{background:#FFF8C4;border-color:#FBE96A;}
+.var-input.saved{background:#DCFCE7;border-color:#86EFAC;}
+.btn-save{background:var(--amarillo);border:none;padding:7px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;color:var(--gris-darker);}
+.btn-save:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-save.ok{background:#86EFAC;}
+
+/* Probador */
+.tester{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);}
+.tester h3{font-family:'Playfair Display',serif;color:var(--gris-dark);margin-bottom:12px;font-size:18px;}
+.tester-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+@media(max-width:840px){.tester-grid{grid-template-columns:1fr;}}
+.t-form .row{margin-bottom:10px;display:flex;flex-direction:column;gap:4px;}
+.t-form label{font-size:11px;text-transform:uppercase;letter-spacing:1.3px;color:var(--text-3);font-weight:600;}
+.t-form select,.t-form input{padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);outline:none;}
+.t-form select:focus,.t-form input:focus{border-color:var(--amarillo-dark);background:#fff;}
+.t-checks{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;}
+.t-checks label{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--text);text-transform:none;letter-spacing:0;font-weight:400;cursor:pointer;}
+.t-btn{background:var(--amarillo);color:var(--gris-darker);border:none;padding:11px;border-radius:8px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;width:100%;margin-top:10px;font-size:13px;}
+.t-btn:hover{background:var(--amarillo-light);}
+
+.t-result{background:var(--amarillo-pale);border:1px solid var(--amarillo-light);border-radius:8px;padding:16px;}
+.t-result-row{margin-bottom:8px;}
+.t-result-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);font-weight:600;}
+.t-result-val{font-family:'Playfair Display',serif;font-size:22px;color:var(--gris-dark);font-weight:700;}
+.t-breakdown{background:#fff;border-radius:6px;padding:10px;font-family:'SF Mono','Consolas',monospace;font-size:11.5px;margin-top:12px;border:1px solid var(--border);max-height:220px;overflow-y:auto;}
+.t-breakdown div{padding:3px 0;border-bottom:1px solid #F4F3EE;display:grid;grid-template-columns:1fr auto;gap:8px;}
+.t-breakdown div:last-child{border:none;font-weight:700;color:var(--gris-dark);}
+
+.toast{position:fixed;bottom:20px;right:20px;background:var(--gris-darker);color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,0.2);transform:translateY(100px);transition:transform 0.3s;}
+.toast.show{transform:translateY(0);}
+.toast.err{background:#991B1B;}
+
+.loading{text-align:center;padding:60px 20px;color:var(--text-3);}
+</style>
+</head>
+<body>
+
+<div id="state-loading" class="loading">⏳ Cargando configuración...</div>
+
+<div id="state-gate" class="gate" style="display:none;">
+  <h2>Acceso restringido</h2>
+  <p style="color:var(--text-2);">La calibración del tasador requiere estar logueado en el CRM.</p>
+  <a href="/crm.html">→ Ir al CRM e iniciar sesión</a>
+</div>
+
+<div id="state-ready" class="layout" style="display:none;">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-name">VARELA</div>
+      <div class="brand-sub">Calibración</div>
+    </div>
+    <h3>Tasador público</h3>
+    <p>Acá editás las variables del modelo que usa el tasador público (<code>tasador.html</code>). Probá los cambios al lado y refiná hasta que los números matcheen tus tasaciones reales.</p>
+    <p><b style="color:#fff;">⚠️ Cuidado:</b> los cambios se guardan en producción. Si dudás de un valor, comparalo con una tasación tuya antes de guardar.</p>
+    <a class="back" href="/crm.html">← Volver al CRM</a>
+  </aside>
+
+  <main class="main">
+    <h1>Calibración del Tasador</h1>
+    <p class="lead">Editá los precios y multiplicadores. Cada cambio se guarda con el botón ✓ de su fila. La pestaña <b>Probar</b> al lado te muestra el resultado en vivo.</p>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="vars">Variables</div>
+      <div class="tab" data-tab="probar">Probar tasación</div>
+    </div>
+
+    <!-- TAB VARIABLES -->
+    <div id="tab-vars" class="tab-content"></div>
+
+    <!-- TAB PROBAR -->
+    <div id="tab-probar" class="tab-content" style="display:none;">
+      <div class="tester">
+        <h3>Probador en vivo</h3>
+        <div class="tester-grid">
+
+          <div class="t-form">
+            <div class="row">
+              <label>Tipo</label>
+              <select id="t-tipo">
+                <option value="casa">Casa</option>
+                <option value="duplex">Duplex</option>
+                <option value="lote">Lote</option>
+                <option value="depto">Departamento</option>
+              </select>
+            </div>
+            <div class="row">
+              <label>Zona</label>
+              <select id="t-zona">
+                <option value="frentemar">Frente al Mar</option>
+                <option value="costanera">Costanera</option>
+                <option value="bosque" selected>Bosque</option>
+                <option value="fondo">Fondo</option>
+              </select>
+            </div>
+
+            <div id="t-casa-fields">
+              <div class="row">
+                <label>m² Cubiertos</label>
+                <input type="number" id="t-cub" value="120" min="20">
+              </div>
+              <div class="row">
+                <label>m² Lote (total)</label>
+                <input type="number" id="t-lote" value="400" min="0">
+              </div>
+              <div class="row">
+                <label>Calidad</label>
+                <select id="t-cal">
+                  <option value="premium">Premium</option>
+                  <option value="estandar" selected>Estándar</option>
+                  <option value="economica">Económica</option>
+                </select>
+              </div>
+              <div class="row">
+                <label>Estado</label>
+                <select id="t-est">
+                  <option value="muybueno">Muy bueno</option>
+                  <option value="bueno" selected>Bueno</option>
+                  <option value="reciclar">A reciclar</option>
+                </select>
+              </div>
+              <div class="row">
+                <label>Antigüedad</label>
+                <select id="t-ant">
+                  <option value="estrenar">A estrenar</option>
+                  <option value="hasta10" selected>Hasta 10 años</option>
+                  <option value="diez25">10 a 25 años</option>
+                  <option value="mas25">+25 años</option>
+                </select>
+              </div>
+              <div class="row">
+                <label>Servicios y Amenities</label>
+                <div class="t-checks">
+                  <label><input type="checkbox" id="t-gas"> Gas natural</label>
+                  <label><input type="checkbox" id="t-cloacas"> Cloacas</label>
+                  <label><input type="checkbox" id="t-pileta"> Piscina</label>
+                  <label><input type="checkbox" id="t-quincho"> Parrilla</label>
+                  <label><input type="checkbox" id="t-deck"> Deck</label>
+                  <label><input type="checkbox" id="t-estac-cub"> Estac. cubierto</label>
+                  <label><input type="checkbox" id="t-estac-desc"> Estac. descubierto</label>
+                  <label><input type="checkbox" id="t-galeria"> Galería semicub.</label>
+                </div>
+              </div>
+            </div>
+
+            <div id="t-depto-fields" style="display:none;">
+              <div class="row">
+                <label>m² del depto</label>
+                <input type="number" id="t-depto-m2" value="60" min="20">
+              </div>
+              <div class="row">
+                <label>Ambientes</label>
+                <select id="t-amb">
+                  <option value="1">1 ambiente</option>
+                  <option value="2" selected>2 ambientes</option>
+                  <option value="3">3 ambientes</option>
+                  <option value="4">4+ ambientes</option>
+                </select>
+              </div>
+              <div class="row">
+                <label>Vista</label>
+                <select id="t-vista">
+                  <option value="frente">Frente al mar</option>
+                  <option value="lateral" selected>Lateral</option>
+                  <option value="contrafrente">Contrafrente</option>
+                </select>
+              </div>
+              <div class="row">
+                <label>Antigüedad depto</label>
+                <select id="t-ant-depto">
+                  <option value="estrenar">A estrenar</option>
+                  <option value="reciente" selected>Hasta 10 años</option>
+                  <option value="antiguo">+10 años</option>
+                </select>
+              </div>
+              <div class="row">
+                <label>Estacionamiento</label>
+                <div class="t-checks">
+                  <label><input type="checkbox" id="t-depto-estac-cub"> Cubierto</label>
+                  <label><input type="checkbox" id="t-depto-estac-desc"> Descubierto</label>
+                </div>
+              </div>
+            </div>
+
+            <button class="t-btn" id="t-btn-calc">Calcular</button>
+          </div>
+
+          <div>
+            <div class="t-result" id="t-resultado">
+              <div style="color:var(--text-3);font-size:13px;text-align:center;padding:30px 10px;">
+                Completá los datos a la izquierda y dale "Calcular" para ver el resultado.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://fwwzjynerfghqsakkyvq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_8F1HY-6hTbgfTnbKdCSAJA_J26tLIup';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let CFG = null;     // {clave: valor}
+let CFG_ROWS = [];  // [{clave, valor, categoria, etiqueta, ayuda, orden}]
+
+const ZONA_SUFIJO = { frentemar:'mar', costanera:'costa', bosque:'bosque', fondo:'fondo' };
+const CAT_INFO = {
+  precio_construido: { titulo: 'Precios USD/m² construido', desc: 'Por zona × calidad' },
+  precio_lote:       { titulo: 'Precios USD/m² lote libre', desc: 'Por zona' },
+  antiguedad:        { titulo: 'Multiplicadores de antigüedad', desc: 'Casas y duplex' },
+  estado:            { titulo: 'Multiplicadores de estado', desc: 'Estado general de la propiedad' },
+  servicios:         { titulo: 'Multiplicadores de servicios', desc: 'Aplican si la propiedad los tiene' },
+  amenities:         { titulo: 'Adicionales por amenities', desc: 'Suma porcentual al precio base' },
+  depto:             { titulo: 'Departamentos', desc: 'Frente al mar (única zona en V1)' },
+  varela:            { titulo: 'Coeficiente Varela', desc: 'Rebaja para precio de cierre' },
+  rango:             { titulo: 'Apertura del rango', desc: 'Cuánto se abre el rango ±' }
+};
+const CAT_ORDEN = ['precio_construido','precio_lote','antiguedad','estado','servicios','amenities','depto','varela','rango'];
+
+// ════════ MOTOR DE TASACIÓN (idéntico al de tasador.html) ════════
+function v(k, d=0) { return (CFG && CFG[k] !== undefined && !isNaN(CFG[k])) ? CFG[k] : d; }
+
+function redondear500(n, modo) {
+  const paso = 500;
+  if (modo === 'down') return Math.floor(n / paso) * paso;
+  if (modo === 'up')   return Math.ceil(n / paso) * paso;
+  return Math.round(n / paso) * paso;
+}
+
+function tasar(input) {
+  const { tipo, zona } = input;
+  const zSuf = ZONA_SUFIJO[zona] || 'bosque';
+  const breakdown = [];
+  let precioBase = 0;
+
+  if (tipo === 'depto') {
+    const m2 = parseFloat(input.cubiertos) || 0;
+    const ambKey = String(input.ambientes) === '4' ? '4amb' : `${input.ambientes}amb`;
+    const precioM2 = v(`precio_depto_${ambKey}`);
+    precioBase = m2 * precioM2;
+    breakdown.push({ paso: `m² × precio_depto_${ambKey}`, valor: precioBase });
+    const vistaMap = { frente:'mult_vista_frente', lateral:'mult_vista_lateral', contrafrente:'mult_vista_contra' };
+    const multVista = v(vistaMap[input.vista] || 'mult_vista_lateral', 1);
+    precioBase *= multVista;
+    breakdown.push({ paso: `× vista (${input.vista}) [${multVista}]`, valor: precioBase });
+    const antMapDepto = { estrenar:'mult_ant_estrenar', reciente:'mult_ant_hasta10', antiguo:'mult_ant_10a25' };
+    const multAntD = v(antMapDepto[input.antDepto] || 'mult_ant_hasta10', 1);
+    precioBase *= multAntD;
+    breakdown.push({ paso: `× antigüedad (${input.antDepto}) [${multAntD}]`, valor: precioBase });
+    let sumaDeptoExtras = 0;
+    if (input.estacCub)  sumaDeptoExtras += v('add_depto_estac_cubierto');
+    if (input.estacDesc) sumaDeptoExtras += v('add_depto_estac_descubierto');
+    if (sumaDeptoExtras > 0) {
+      precioBase *= (1 + sumaDeptoExtras);
+      breakdown.push({ paso: `× (1 + estac. ${sumaDeptoExtras.toFixed(3)})`, valor: precioBase });
+    }
+  } else {
+    const cubiertos = parseFloat(input.cubiertos) || 0;
+    const lote = parseFloat(input.lote) || 0;
+    if (tipo === 'lote') {
+      const precioM2Lote = v(`precio_lote_${zSuf}`);
+      precioBase = lote * precioM2Lote;
+      breakdown.push({ paso: `m² × precio_lote_${zSuf} (${precioM2Lote})`, valor: precioBase });
+    } else {
+      const calidad = input.calidad || 'estandar';
+      const precioM2Constr = v(`precio_constr_${zSuf}_${calidad}`);
+      const precioM2Lote = v(`precio_lote_${zSuf}`);
+      const valorConstr = cubiertos * precioM2Constr;
+      breakdown.push({ paso: `${cubiertos}m² × constr_${zSuf}_${calidad} (${precioM2Constr})`, valor: valorConstr });
+      const m2Libre = Math.max(0, lote - cubiertos);
+      const valorLote = m2Libre * precioM2Lote;
+      breakdown.push({ paso: `${m2Libre}m² lote libre × ${precioM2Lote}`, valor: valorLote });
+      precioBase = valorConstr + valorLote;
+      breakdown.push({ paso: `subtotal`, valor: precioBase });
+    }
+    if (tipo !== 'lote') {
+      const antMap = { estrenar:'mult_ant_estrenar', hasta10:'mult_ant_hasta10', diez25:'mult_ant_10a25', mas25:'mult_ant_mas25' };
+      const multAnt = v(antMap[input.antiguedad] || 'mult_ant_hasta10', 1);
+      precioBase *= multAnt;
+      breakdown.push({ paso: `× antigüedad (${input.antiguedad}) [${multAnt}]`, valor: precioBase });
+      const estMap = { muybueno:'mult_est_muybueno', bueno:'mult_est_bueno', reciclar:'mult_est_reciclar' };
+      const multEst = v(estMap[input.estado] || 'mult_est_bueno', 1);
+      precioBase *= multEst;
+      breakdown.push({ paso: `× estado (${input.estado}) [${multEst}]`, valor: precioBase });
+    }
+    if (input.gas)     { const m = v('mult_serv_gas', 1);     precioBase *= m; breakdown.push({ paso:`× gas [${m}]`, valor: precioBase }); }
+    if (input.cloacas) { const m = v('mult_serv_cloacas', 1); precioBase *= m; breakdown.push({ paso:`× cloacas [${m}]`, valor: precioBase }); }
+    let suma = 0;
+    if (input.pileta)    suma += v('add_pileta');
+    if (input.quincho)   suma += v('add_quincho');
+    if (input.deck)      suma += v('add_deck');
+    if (input.estacCub)  suma += v('add_estac_cubierto');
+    if (input.estacDesc) suma += v('add_estac_descubierto');
+    if (input.galeria)   suma += v('add_galeria_semi');
+    if (suma > 0) {
+      precioBase *= (1 + suma);
+      breakdown.push({ paso: `× (1 + amenities ${suma.toFixed(3)})`, valor: precioBase });
+    }
+  }
+
+  const apertura = v('rango_apertura', 0.08);
+  const pubMinRaw = precioBase * (1 - apertura);
+  const pubMaxRaw = precioBase * (1 + apertura);
+  const cMin = v('coef_varela_min', 0.80);
+  const cMax = v('coef_varela_max', 0.85);
+  const cierreMinRaw = pubMinRaw * cMin;
+  const cierreMaxRaw = pubMaxRaw * cMax;
+
+  const pubMin    = redondear500(pubMinRaw,    'down');
+  const pubMax    = redondear500(pubMaxRaw,    'up');
+  const cierreMin = redondear500(cierreMinRaw, 'down');
+  const cierreMax = redondear500(cierreMaxRaw, 'up');
+
+  return { precioBase, pubMin, pubMax, cierreMin, cierreMax, breakdown };
+}
+
+// ════════ AUTH GATE ════════
+async function checkAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  return !!session;
+}
+
+// ════════ CARGA DE CONFIG ════════
+async function cargarConfig() {
+  const { data, error } = await sb.from('tasador_publico_config')
+    .select('clave, valor, categoria, etiqueta, ayuda, orden')
+    .order('categoria').order('orden');
+  if (error) { console.error(error); return null; }
+  CFG_ROWS = data;
+  CFG = {};
+  for (const row of data) CFG[row.clave] = parseFloat(row.valor);
+  return data;
+}
+
+// ════════ RENDER VARIABLES ════════
+function renderVars() {
+  const cont = document.getElementById('tab-vars');
+  cont.innerHTML = '';
+  const grupos = {};
+  for (const row of CFG_ROWS) {
+    if (!grupos[row.categoria]) grupos[row.categoria] = [];
+    grupos[row.categoria].push(row);
+  }
+  for (const cat of CAT_ORDEN) {
+    if (!grupos[cat]) continue;
+    const info = CAT_INFO[cat] || { titulo: cat, desc: '' };
+    let html = `
+      <div class="cat">
+        <div class="cat-header">
+          <div>
+            <div class="cat-title">${info.titulo}</div>
+            <div class="cat-desc">${info.desc}</div>
+          </div>
+        </div>
+        <div class="cat-body">
+    `;
+    for (const r of grupos[cat]) {
+      html += `
+        <div class="var-row">
+          <div>
+            <div class="var-label">${r.etiqueta}</div>
+            ${r.ayuda ? `<div class="var-help">${r.ayuda}</div>` : ''}
+          </div>
+          <input class="var-input" type="number" step="any" value="${r.valor}" data-clave="${r.clave}">
+          <button class="btn-save" data-clave="${r.clave}" disabled>Guardar</button>
+        </div>
+      `;
+    }
+    html += `</div></div>`;
+    cont.insertAdjacentHTML('beforeend', html);
+  }
+
+  // Listeners de inputs
+  cont.querySelectorAll('.var-input').forEach(inp => {
+    const clave = inp.dataset.clave;
+    const btn = cont.querySelector(`button[data-clave="${clave}"]`);
+    const original = parseFloat(inp.value);
+    inp.addEventListener('input', () => {
+      const cur = parseFloat(inp.value);
+      if (cur !== original && !isNaN(cur)) {
+        inp.classList.add('dirty');
+        inp.classList.remove('saved');
+        btn.disabled = false;
+      } else {
+        inp.classList.remove('dirty');
+        btn.disabled = true;
+      }
+    });
+    btn.addEventListener('click', () => guardarVariable(clave, parseFloat(inp.value), inp, btn));
+  });
+}
+
+async function guardarVariable(clave, valor, inp, btn) {
+  if (isNaN(valor)) { toast('Valor inválido', true); return; }
+  btn.disabled = true; btn.textContent = '...';
+  const { error } = await sb.from('tasador_publico_config')
+    .update({ valor, updated_at: new Date().toISOString() })
+    .eq('clave', clave);
+  if (error) {
+    console.error(error);
+    toast('Error al guardar: ' + error.message, true);
+    btn.disabled = false; btn.textContent = 'Guardar';
+    return;
+  }
+  CFG[clave] = valor;
+  // Actualizar también CFG_ROWS para que un re-render no muestre el valor viejo
+  const row = CFG_ROWS.find(r => r.clave === clave);
+  if (row) row.valor = valor;
+  inp.classList.remove('dirty'); inp.classList.add('saved');
+  btn.textContent = '✓'; btn.classList.add('ok');
+  setTimeout(() => { btn.textContent = 'Guardar'; btn.classList.remove('ok'); inp.classList.remove('saved'); }, 1800);
+  toast('Guardado · ' + clave);
+}
+
+// ════════ TABS ════════
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(x => x.style.display = 'none');
+    document.getElementById('tab-' + t.dataset.tab).style.display = 'block';
+  });
+});
+
+// ════════ PROBADOR ════════
+function setupTester() {
+  document.getElementById('t-tipo').addEventListener('change', e => {
+    const isDepto = e.target.value === 'depto';
+    document.getElementById('t-casa-fields').style.display = isDepto ? 'none' : 'block';
+    document.getElementById('t-depto-fields').style.display = isDepto ? 'block' : 'none';
+    if (isDepto) document.getElementById('t-zona').value = 'frentemar';
+  });
+
+  document.getElementById('t-btn-calc').addEventListener('click', () => {
+    const tipo = document.getElementById('t-tipo').value;
+    const zona = document.getElementById('t-zona').value;
+    const input = { tipo, zona };
+    if (tipo === 'depto') {
+      input.cubiertos = parseFloat(document.getElementById('t-depto-m2').value);
+      input.ambientes = document.getElementById('t-amb').value;
+      input.vista = document.getElementById('t-vista').value;
+      input.antDepto = document.getElementById('t-ant-depto').value;
+      input.estacCub  = document.getElementById('t-depto-estac-cub').checked;
+      input.estacDesc = document.getElementById('t-depto-estac-desc').checked;
+    } else {
+      input.cubiertos = parseFloat(document.getElementById('t-cub').value);
+      input.lote = parseFloat(document.getElementById('t-lote').value);
+      if (tipo !== 'lote') {
+        input.calidad = document.getElementById('t-cal').value;
+        input.estado = document.getElementById('t-est').value;
+        input.antiguedad = document.getElementById('t-ant').value;
+      }
+      input.gas = document.getElementById('t-gas').checked;
+      input.cloacas = document.getElementById('t-cloacas').checked;
+      input.pileta = document.getElementById('t-pileta').checked;
+      input.quincho = document.getElementById('t-quincho').checked;
+      input.deck = document.getElementById('t-deck').checked;
+      input.estacCub  = document.getElementById('t-estac-cub').checked;
+      input.estacDesc = document.getElementById('t-estac-desc').checked;
+      input.galeria   = document.getElementById('t-galeria').checked;
+    }
+
+    const r = tasar(input);
+    const fmt = n => 'USD ' + Math.round(n).toLocaleString('es-AR');
+    let html = `
+      <div class="t-result-row">
+        <div class="t-result-label">Valor central calculado</div>
+        <div class="t-result-val">${fmt(r.precioBase)}</div>
+      </div>
+      <div class="t-result-row" style="margin-top:14px;">
+        <div class="t-result-label">Rango publicación (±${(r.pubMax/r.precioBase-1).toFixed(2)*100|0}%)</div>
+        <div class="t-result-val">${fmt(r.pubMin)} – ${fmt(r.pubMax)}</div>
+      </div>
+      <div class="t-result-row" style="margin-top:14px;">
+        <div class="t-result-label">Rango cierre estimado (Coef. Varela)</div>
+        <div class="t-result-val">${fmt(r.cierreMin)} – ${fmt(r.cierreMax)}</div>
+      </div>
+      <div class="t-result-label" style="margin-top:18px;">Desglose paso a paso</div>
+      <div class="t-breakdown">
+    `;
+    for (const b of r.breakdown) {
+      html += `<div><span>${b.paso}</span><span>${fmt(b.valor)}</span></div>`;
+    }
+    html += `</div>`;
+    document.getElementById('t-resultado').innerHTML = html;
+  });
+}
+
+// ════════ TOAST ════════
+function toast(msg, err = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.toggle('err', err);
+  t.classList.add('show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ════════ INIT ════════
+(async () => {
+  const auth = await checkAuth();
+  if (!auth) {
+    document.getElementById('state-loading').style.display = 'none';
+    document.getElementById('state-gate').style.display = 'flex';
+    return;
+  }
+  await cargarConfig();
+  if (!CFG_ROWS.length) {
+    toast('La tabla tasador_publico_config está vacía. Corré primero el SQL inicial.', true);
+    return;
+  }
+  document.getElementById('state-loading').style.display = 'none';
+  document.getElementById('state-ready').style.display = 'grid';
+  renderVars();
+  setupTester();
+})();
+</script>
+
+</body>
+</html>
