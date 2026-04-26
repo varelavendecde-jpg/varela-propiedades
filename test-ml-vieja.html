@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Callback OAuth · Varela (test app vieja)</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:640px;margin:60px auto;padding:0 24px;color:#2E2F3E;}
+h1{font-size:22px;margin-bottom:24px;}
+.box{background:#FAF9F5;border:1px solid rgba(107,111,138,0.15);border-radius:10px;padding:18px;margin-bottom:14px;}
+label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#A0A3B5;font-weight:600;margin-bottom:6px;}
+input,textarea{width:100%;padding:10px;border:1px solid rgba(107,111,138,0.2);border-radius:6px;font-family:'SF Mono',monospace;font-size:13px;background:#fff;}
+.code{font-family:'SF Mono',monospace;font-size:12px;background:#FDFBE8;padding:8px 12px;border-radius:6px;word-break:break-all;border:1px solid #FBF5A0;}
+button{background:#F5E642;color:#2A2B38;border:none;padding:14px 24px;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px;margin-top:8px;}
+button:hover{background:#FBF5A0;}
+.ok{background:#DCFCE7;border-color:#86EFAC;color:#15803D;}
+.err{background:#FEF2F2;border-color:#FECACA;color:#991B1B;}
+.step{font-size:12px;color:#6B6F8A;margin-bottom:6px;}
+pre{background:#2A2B38;color:#F5E642;padding:14px;border-radius:8px;font-size:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;}
+.test-result{margin-top:16px;}
+</style>
+</head>
+<body>
+
+<h1>🔬 Test App Vieja — Tasador Varela</h1>
+
+<div class="box">
+  <div class="step">Esta página intercambia el code de la app vieja del CRM (4099559760727337) usando como redirect_uri <b>crm.html</b>. Después prueba si el access_token obtenido puede llamar a /sites/MLA/search.</div>
+</div>
+
+<div class="box">
+  <label>App ID (vieja)</label>
+  <input id="appid" value="4099559760727337">
+  <br><br>
+  <label>App Secret (vieja)</label>
+  <input id="secret" placeholder="Pegá el Client Secret">
+  <br><br>
+  <label>Authorization Code</label>
+  <input id="code" value="TG-69ed60ad2fc04400018cbfe9-199060820">
+  <br><br>
+  <button onclick="ejecutar()">🚀 Intercambiar y probar search</button>
+</div>
+
+<div id="resultado"></div>
+
+<script>
+const REDIRECT_URI = 'https://www.varelapropiedadescde.com.ar/crm.html';
+
+async function ejecutar() {
+  const appId = document.getElementById('appid').value.trim();
+  const secret = document.getElementById('secret').value.trim();
+  const code = document.getElementById('code').value.trim();
+  const out = document.getElementById('resultado');
+
+  if (!appId || !secret || !code) {
+    out.innerHTML = '<div class="box err">❌ Faltan datos</div>';
+    return;
+  }
+
+  out.innerHTML = '<div class="box">⏳ Intercambiando code por token...</div>';
+
+  // ─── PASO 1: intercambiar code por access_token ───
+  const params = new URLSearchParams({
+    grant_type: 'authorization_code',
+    client_id: appId,
+    client_secret: secret,
+    code: code,
+    redirect_uri: REDIRECT_URI
+  });
+
+  let tokenData;
+  try {
+    const resp = await fetch('https://api.mercadolibre.com/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+    tokenData = await resp.json();
+    if (!resp.ok || !tokenData.access_token) {
+      out.innerHTML = `
+        <div class="box err">❌ Error en el intercambio:</div>
+        <pre>${JSON.stringify(tokenData, null, 2)}</pre>
+      `;
+      return;
+    }
+  } catch (e) {
+    out.innerHTML = `<div class="box err">❌ Network error: ${e.message}</div>`;
+    return;
+  }
+
+  out.innerHTML = `
+    <div class="box ok">✅ Token obtenido</div>
+    <div class="box">
+      <div class="step">access_token (primeros 30 chars):</div>
+      <div class="code">${tokenData.access_token.slice(0, 30)}...</div>
+      <div class="step" style="margin-top:8px;">refresh_token (primeros 30 chars):</div>
+      <div class="code">${tokenData.refresh_token ? tokenData.refresh_token.slice(0, 30) + '...' : '(no vino)'}</div>
+    </div>
+    <div class="box">⏳ Probando search en ML...</div>
+  `;
+
+  // ─── PASO 2: probar /sites/MLA/search ───
+  const searchUrl = 'https://api.mercadolibre.com/sites/MLA/search?category=MLA1468&q=Costa%20del%20Este&limit=3';
+  let searchData;
+  try {
+    const sResp = await fetch(searchUrl, {
+      headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+    });
+    searchData = await sResp.json();
+
+    if (sResp.ok && searchData.results) {
+      // ¡FUNCIONÓ! Mostramos resultado y SQL listo para guardar el token
+      const expiresAt = new Date(Date.now() + (tokenData.expires_in - 60) * 1000).toISOString();
+      out.innerHTML += `
+        <div class="box ok">🎉 ¡FUNCIONA! La app vieja sí puede buscar.</div>
+        <div class="box">
+          <div class="step">Cantidad de resultados: <b>${searchData.results.length}</b></div>
+          <div class="step">Primer item: ${searchData.results[0]?.title || '(sin título)'}</div>
+          <div class="step">Precio: ${searchData.results[0]?.currency_id} ${searchData.results[0]?.price}</div>
+        </div>
+        <div class="box">
+          <div class="step">📋 SQL para guardar este token en Supabase (sobreescribe el anterior):</div>
+          <pre>insert into ml_tokens (id, access_token, refresh_token, expires_at)
+values (
+  'tasador',
+  '${tokenData.access_token}',
+  '${tokenData.refresh_token}',
+  '${expiresAt}'
+)
+on conflict (id) do update set
+  access_token = excluded.access_token,
+  refresh_token = excluded.refresh_token,
+  expires_at = excluded.expires_at,
+  updated_at = now();</pre>
+          <div class="step" style="margin-top:8px;">⚠️ Después de correr esto, también actualizá los Secrets:<br>
+          <b>ML_APP_ID</b> = ${appId}<br>
+          <b>ML_APP_SECRET</b> = (el secret de la app vieja, distinto al de la app nueva)</div>
+        </div>
+      `;
+    } else {
+      out.innerHTML += `
+        <div class="box err">❌ Search también falló (${sResp.status}):</div>
+        <pre>${JSON.stringify(searchData, null, 2)}</pre>
+        <div class="box">
+          Esto confirma que ML cerró search incluso para apps viejas. Vamos a Plan B.
+        </div>
+      `;
+    }
+  } catch (e) {
+    // Network error es típicamente CORS — el token igual es válido,
+    // solo no podemos probarlo desde el navegador. Mostramos el SQL igual.
+    const expiresAt = new Date(Date.now() + (tokenData.expires_in - 60) * 1000).toISOString();
+    out.innerHTML += `
+      <div class="box err">⚠️ No pudimos probar search desde el browser (CORS): ${e.message}</div>
+      <div class="box">
+        <div class="step">Esto NO significa que el token esté mal. Significa que ML bloquea llamadas directas desde browsers (que es lo esperable). El test real lo hace la Edge Function.</div>
+        <div class="step" style="margin-top:8px;">📋 Igual te dejo el SQL para guardar el token y poder probarlo:</div>
+        <pre>insert into ml_tokens (id, access_token, refresh_token, expires_at)
+values (
+  'tasador',
+  '${tokenData.access_token}',
+  '${tokenData.refresh_token}',
+  '${expiresAt}'
+)
+on conflict (id) do update set
+  access_token = excluded.access_token,
+  refresh_token = excluded.refresh_token,
+  expires_at = excluded.expires_at,
+  updated_at = now();</pre>
+        <div class="step" style="margin-top:8px;">⚠️ Después de correr esto, también actualizá los Secrets en Supabase:<br>
+        <b>ML_APP_ID</b> = ${appId}<br>
+        <b>ML_APP_SECRET</b> = ${secret}</div>
+      </div>
+    `;
+  }
+}
+</script>
+
+</body>
+</html>
