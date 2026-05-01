@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tasador Inteligente · Varela Inmobiliaria</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --amarillo: #F5E642;
+  --amarillo-dark: #D4C520;
+  --amarillo-light: #FBF5A0;
+  --amarillo-pale: #FDFBE8;
+  --gris: #6B6F8A;
+  --gris-dark: #3D3F52;
+  --gris-darker: #2A2B38;
+  --bg: #FAF9F5;
+  --bg-card: #FFFFFF;
+  --text: #2E2F3E;
+  --text-2: #6B6F8A;
+  --text-3: #A0A3B5;
+  --border: rgba(107,111,138,0.10);
+  --shadow: 0 2px 12px rgba(60,62,82,0.06);
+  --shadow-lg: 0 16px 48px rgba(60,62,82,0.12);
+  --radius: 12px;
+  --radius-lg: 18px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);padding:40px 20px;}
+
+/* ════════ SECCIÓN VALUADOR ════════ */
+.val-section{max-width:1140px;margin:0 auto;padding:60px 0;}
+.val-header{text-align:center;margin-bottom:48px;}
+.val-eyebrow{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--amarillo-dark);font-weight:600;margin-bottom:12px;}
+.val-title{font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:var(--gris-dark);line-height:1.15;margin-bottom:14px;}
+.val-title span{color:var(--amarillo-dark);font-style:italic;}
+.val-sub{font-size:15px;color:var(--text-2);max-width:560px;margin:0 auto;line-height:1.6;}
+
+.val-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;}
+@media(max-width:840px){.val-grid{grid-template-columns:1fr;}}
+
+/* Lado izq: features */
+.val-features{padding:8px 0;}
+.val-feature{display:flex;gap:14px;margin-bottom:22px;align-items:flex-start;}
+.val-feat-icon{width:42px;height:42px;background:var(--amarillo-pale);border:1px solid var(--amarillo-light);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.val-feat-text{flex:1;}
+.val-feat-title{font-weight:600;color:var(--gris-dark);margin-bottom:3px;font-size:15px;}
+.val-feat-desc{font-size:13px;color:var(--text-2);line-height:1.5;}
+
+.val-trust{background:var(--amarillo-pale);border:1px solid var(--amarillo-light);border-radius:var(--radius);padding:16px 18px;margin-top:24px;}
+.val-trust-title{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--amarillo-dark);font-weight:700;margin-bottom:6px;}
+.val-trust-text{font-size:13px;color:var(--gris-dark);line-height:1.5;}
+
+/* Lado der: form / resultado */
+.val-card{background:var(--bg-card);border-radius:var(--radius-lg);padding:32px;box-shadow:var(--shadow-lg);border:1px solid var(--border);}
+.val-step-label{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--text-3);font-weight:600;margin-bottom:8px;}
+.val-card-title{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--gris-dark);margin-bottom:24px;}
+
+.val-row{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.val-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.val-label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);font-weight:600;}
+.val-input,.val-select{padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);outline:none;transition:all 0.2s;width:100%;}
+.val-input:focus,.val-select:focus{border-color:var(--amarillo-dark);box-shadow:0 0 0 3px rgba(245,230,66,0.18);background:#fff;}
+
+.val-checkbox-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.2s;}
+.val-checkbox-row:hover{border-color:var(--amarillo-dark);}
+.val-checkbox-row input{accent-color:var(--amarillo-dark);width:16px;height:16px;cursor:pointer;}
+.val-checkbox-row label{font-size:13px;color:var(--text);cursor:pointer;flex:1;}
+
+.val-btn{width:100%;background:var(--amarillo);color:var(--gris-dark);border:none;padding:16px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:0.3px;transition:all 0.25s;font-family:'DM Sans',sans-serif;margin-top:8px;}
+.val-btn:hover:not(:disabled){background:var(--amarillo-light);transform:translateY(-2px);box-shadow:0 8px 24px rgba(245,230,66,0.3);}
+.val-btn:disabled{opacity:0.6;cursor:not-allowed;}
+
+.val-divider{height:1px;background:var(--border);margin:18px 0;}
+.val-section-title{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gris-dark);font-weight:700;margin-bottom:12px;}
+
+/* ════════ LOADING ════════ */
+.val-loading{text-align:center;padding:40px 20px;}
+.val-spinner{width:48px;height:48px;border:3px solid var(--amarillo-pale);border-top-color:var(--amarillo-dark);border-radius:50%;margin:0 auto 16px;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.val-loading-text{font-size:14px;color:var(--text-2);}
+.val-loading-step{font-size:11px;color:var(--text-3);margin-top:8px;text-transform:uppercase;letter-spacing:1.5px;}
+
+/* ════════ RESULTADO ════════ */
+.val-result{animation:fadeIn 0.4s;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+.val-result-eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--text-3);font-weight:600;margin-bottom:6px;}
+.val-result-meta{font-size:12px;color:var(--text-2);margin-bottom:24px;}
+.val-result-meta b{color:var(--gris-dark);}
+
+.val-range-card{background:linear-gradient(135deg, #FFFEF5 0%, var(--amarillo-pale) 100%);border:1px solid var(--amarillo-light);border-radius:var(--radius-lg);padding:24px;margin-bottom:14px;}
+.val-range-card.cierre{background:var(--bg-card);border:1px solid var(--border);}
+.val-range-label{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--text-3);font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.val-range-tag{background:var(--gris-dark);color:#fff;font-size:9px;padding:3px 8px;border-radius:20px;letter-spacing:1px;}
+.val-range-tag.real{background:var(--amarillo-dark);color:var(--gris-darker);}
+.val-range-value{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--gris-dark);line-height:1.2;}
+.val-range-sub{font-size:12px;color:var(--text-2);margin-top:6px;}
+
+.val-disclaimer{font-size:11px;color:var(--text-3);line-height:1.6;padding:12px 14px;background:var(--bg);border-radius:10px;margin-top:14px;}
+
+.val-cta-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;}
+@media(max-width:520px){.val-cta-row{grid-template-columns:1fr;}}
+.val-cta{padding:14px;border-radius:10px;font-size:13px;font-weight:600;text-align:center;cursor:pointer;border:none;transition:all 0.2s;font-family:'DM Sans',sans-serif;text-decoration:none;display:block;}
+.val-cta-primary{background:var(--gris-dark);color:#fff;}
+.val-cta-primary:hover{background:var(--gris-darker);}
+.val-cta-secondary{background:var(--amarillo);color:var(--gris-dark);}
+.val-cta-secondary:hover{background:var(--amarillo-light);}
+
+.val-back{background:transparent;border:none;color:var(--text-3);font-size:12px;cursor:pointer;margin-top:14px;font-family:'DM Sans',sans-serif;text-decoration:underline;}
+
+/* Estado: error */
+.val-error{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;padding:14px;border-radius:10px;font-size:13px;margin-bottom:14px;}
+
+.val-gate-wrap{position:relative;}
+.val-gate-blur{filter:blur(6px);user-select:none;pointer-events:none;opacity:0.7;}
+.val-gate-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;padding:20px;}
+.val-gate-box{background:#fff;border-radius:var(--radius-lg);padding:28px 24px;box-shadow:var(--shadow-lg);border:1px solid var(--border);width:100%;max-width:360px;text-align:center;}
+.val-gate-icon{font-size:32px;margin-bottom:10px;}
+.val-gate-title{font-family:'Playfair Display',serif;font-size:19px;color:var(--gris-dark);margin-bottom:6px;font-weight:700;}
+.val-gate-sub{font-size:12px;color:var(--text-2);line-height:1.6;margin-bottom:18px;}
+.val-gate-fields{text-align:left;margin-bottom:14px;}
+.val-gate-fields .val-row{margin-bottom:10px;}
+.val-gate-note{font-size:10px;color:var(--text-3);margin-top:10px;line-height:1.5;}
+
+/* Estado: sin comparables */
+.val-empty{text-align:center;padding:24px;}
+.val-empty-icon{font-size:40px;margin-bottom:12px;opacity:0.5;}
+.val-empty-title{font-family:'Playfair Display',serif;font-size:20px;color:var(--gris-dark);margin-bottom:8px;}
+.val-empty-text{font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:18px;}
+
+/* Estado: éxito post-contacto */
+.val-success{text-align:center;padding:30px 20px;}
+.val-success-icon{width:64px;height:64px;background:#DCFCE7;color:#15803D;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px;}
+.val-success-title{font-family:'Playfair Display',serif;font-size:22px;color:var(--gris-dark);margin-bottom:10px;}
+.val-success-text{font-size:14px;color:var(--text-2);line-height:1.6;}
+
+/* Modal contacto */
+.val-modal-overlay{position:fixed;inset:0;background:rgba(42,43,56,0.6);backdrop-filter:blur(4px);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;}
+.val-modal-overlay.show{display:flex;}
+.val-modal{background:#fff;border-radius:var(--radius-lg);max-width:440px;width:100%;padding:32px;animation:fadeIn 0.3s;}
+.val-modal-title{font-family:'Playfair Display',serif;font-size:22px;color:var(--gris-dark);margin-bottom:6px;}
+.val-modal-sub{font-size:13px;color:var(--text-2);margin-bottom:20px;line-height:1.5;}
+.val-modal-close{position:absolute;top:16px;right:16px;background:none;border:none;font-size:24px;color:var(--text-3);cursor:pointer;line-height:1;}
+</style>
+</head>
+<body>
+
+<section class="val-section" id="valuador">
+
+  <!-- Header -->
+  <div class="val-header">
+    <div class="val-eyebrow">Tasador Inteligente</div>
+    <h2 class="val-title">¿Cuánto vale tu propiedad <span>en Costa del Este</span>?</h2>
+    <p class="val-sub">Análisis en tiempo real cruzando publicaciones del mercado y aplicando nuestro coeficiente de cierre real.</p>
+  </div>
+
+  <div class="val-grid">
+
+    <!-- Columna izq: features + trust -->
+    <div class="val-features">
+      <div class="val-feature">
+        <div class="val-feat-icon">📊</div>
+        <div class="val-feat-text">
+          <div class="val-feat-title">Datos del mercado en vivo</div>
+          <div class="val-feat-desc">Cruzamos cientos de publicaciones activas en Costa del Este para encontrar comparables reales.</div>
+        </div>
+      </div>
+      <div class="val-feature">
+        <div class="val-feat-icon">📈</div>
+        <div class="val-feat-text">
+          <div class="val-feat-title">Estadística honesta</div>
+          <div class="val-feat-desc">Mediana y percentiles, no promedios manipulados. Filtramos outliers y publicaciones desactualizadas.</div>
+        </div>
+      </div>
+      <div class="val-feature">
+        <div class="val-feat-icon">🎯</div>
+        <div class="val-feat-text">
+          <div class="val-feat-title">Coeficiente Varela</div>
+          <div class="val-feat-desc">Ajuste del 15-20% sobre publicación: el valor real al que se cierran operaciones en la zona, basado en 27 años de experiencia.</div>
+        </div>
+      </div>
+      <div class="val-feature">
+        <div class="val-feat-icon">📄</div>
+        <div class="val-feat-text">
+          <div class="val-feat-title">Reporte directo</div>
+          <div class="val-feat-desc">Te enviamos el análisis completo a tu WhatsApp y agendamos una visita si querés profundizar.</div>
+        </div>
+      </div>
+
+      <div class="val-trust">
+        <div class="val-trust-title">⚖️ Aclaración legal</div>
+        <div class="val-trust-text">Este es un valor estimado de referencia basado en datos públicos del mercado. No constituye una tasación oficial. Una visita técnica puede ajustar el valor según estado, ubicación específica y características no relevadas.</div>
+      </div>
+    </div>
+
+    <!-- Columna der: form / loading / resultado -->
+    <div class="val-card" id="val-card">
+
+      <!-- ESTADO 1: FORMULARIO -->
+      <div id="val-form-state">
+        <div class="val-step-label">Paso 1 de 2 · Datos de la propiedad</div>
+        <div class="val-card-title">Contanos sobre tu propiedad</div>
+
+        <div class="val-row">
+          <label class="val-label">Tipo de propiedad</label>
+          <select class="val-select" id="val-tipo">
+            <option value="casa">🏠 Casa</option>
+            <option value="duplex">🏘️ Duplex</option>
+            <option value="lote">📐 Lote / Terreno</option>
+            <option value="depto">🏢 Departamento</option>
+          </select>
+        </div>
+
+        <div class="val-row">
+          <label class="val-label">Zona en Costa del Este</label>
+          <select class="val-select" id="val-zona">
+            <option value="costanera">🏙️ Av. Costanera</option>
+            <option value="av2camelias">🏘️ Av. 2 y Camelias</option>
+            <option value="zonamar">🌊 Zona Mar · Amapolas → Violetas</option>
+            <option value="interbalnearia">🛣️ Av. Interbalnearia</option>
+            <option value="bosque" selected>🌲 Zona Bosque · Las Rosas → Los Alelíes</option>
+            <option value="fondo">🌳 Zona Fondo · Las Madreselvas → Las Lilas</option>
+          </select>
+        </div>
+
+        <!-- Campos específicos de depto (sólo aparecen si tipo=depto) -->
+        <div id="val-depto-fields" style="display:none;">
+          <div class="val-row-2">
+            <div class="val-row" style="margin:0;">
+              <label class="val-label">Ambientes</label>
+              <select class="val-select" id="val-ambientes">
+                <option value="1">1 ambiente / Monoambiente</option>
+                <option value="2" selected>2 ambientes</option>
+                <option value="3">3 ambientes</option>
+                <option value="4">4 ambientes o más</option>
+              </select>
+            </div>
+            <div class="val-row" style="margin:0;">
+              <label class="val-label">Antigüedad</label>
+              <select class="val-select" id="val-antiguedad">
+                <option value="estrenar">A estrenar</option>
+                <option value="reciente">Hasta 10 años</option>
+                <option value="antiguo" selected>Más de 10 años</option>
+              </select>
+            </div>
+          </div>
+          <div class="val-row">
+            <label class="val-label">Vista al mar</label>
+            <select class="val-select" id="val-vista">
+              <option value="frente">Frente al mar (vista directa)</option>
+              <option value="lateral" selected>Vista lateral / parcial</option>
+              <option value="contrafrente">Sin vista al mar</option>
+            </select>
+          </div>
+          <div class="val-section-title" style="margin-top:14px;">Estacionamiento</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
+            <label class="val-checkbox-row">
+              <input type="checkbox" id="val-depto-estac-cub">
+              <span>🚗 Cubierto</span>
+            </label>
+            <label class="val-checkbox-row">
+              <input type="checkbox" id="val-depto-estac-desc">
+              <span>🚙 Descubierto</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="val-row-2" id="val-row-metros">
+          <div class="val-row" style="margin:0;">
+            <label class="val-label" id="val-label-cubiertos">m² Cubiertos</label>
+            <input class="val-input" type="number" id="val-cubiertos" placeholder="Ej: 120" min="1">
+          </div>
+          <div class="val-row" style="margin:0;" id="val-row-lote">
+            <label class="val-label">m² Lote (total)</label>
+            <input class="val-input" type="number" id="val-lote" placeholder="Ej: 500" min="1">
+          </div>
+        </div>
+
+        <!-- Calidad / Estado / Antigüedad — sólo para casa/duplex -->
+        <div id="val-row-construccion">
+          <div class="val-row-2">
+            <div class="val-row" style="margin:0;">
+              <label class="val-label">Calidad constructiva</label>
+              <select class="val-select" id="val-calidad">
+                <option value="premium">Premium · finos detalles</option>
+                <option value="estandar" selected>Estándar · construcción correcta</option>
+                <option value="economica">Económica · materiales básicos</option>
+              </select>
+            </div>
+            <div class="val-row" style="margin:0;">
+              <label class="val-label">Estado general</label>
+              <select class="val-select" id="val-estado">
+                <option value="muybueno">Muy bueno</option>
+                <option value="bueno" selected>Bueno</option>
+                <option value="reciclar">A reciclar</option>
+              </select>
+            </div>
+          </div>
+          <div class="val-row">
+            <label class="val-label">Antigüedad</label>
+            <select class="val-select" id="val-ant-casa">
+              <option value="estrenar">A estrenar</option>
+              <option value="hasta10" selected>Hasta 10 años</option>
+              <option value="diez25">10 a 25 años</option>
+              <option value="mas25">Más de 25 años</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="val-row-servicios">
+          <div class="val-divider"></div>
+          <div class="val-section-title">Servicios</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+            <label class="val-checkbox-row">
+              <input type="checkbox" id="val-gas">
+              <span>🔥 Gas natural</span>
+            </label>
+            <label class="val-checkbox-row">
+              <input type="checkbox" id="val-cloacas">
+              <span>🚰 Cloacas</span>
+            </label>
+          </div>
+          <div class="val-section-title">Amenities</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+            <label class="val-checkbox-row">
+              <input type="checkbox" id="val-pileta">
+              <span>🏊 Piscina</span>
+            </label>
+            <label class="val-checkbox-row">
+              <input type="checkbox" id="val-quincho">
+              <span>🔥 Parrilla</span>
+            </label>
+            <label class="val-checkbox-row">
+              <input type="checkbox" id="val-deck">
+              <span>🪵 Deck</span>
+            </label>
+            <label class="val-checkbox-row">
+              <input type="checkbox" id="val-estac-cub">
+              <span>🚗 Estac. cubierto</span>
+            </label>
+            <label class="val-checkbox-row">
+              <input type="checkbox" id="val-estac-desc">
+              <span>🚙 Estac. descubierto</span>
+            </label>
+            <label class="val-checkbox-row">
+              <input type="checkbox" id="val-galeria">
+              <span>☂️ Galería semicub.</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="val-row">
+          <label class="val-label">¿Cuándo pensás vender?</label>
+          <select class="val-select" id="val-urgencia">
+            <option value="inmediato">Lo antes posible</option>
+            <option value="3meses">En los próximos 3 meses</option>
+            <option value="6meses">En 6 meses o más</option>
+            <option value="curiosidad">Solo quiero saber el valor</option>
+          </select>
+        </div>
+
+        <button class="val-btn" id="val-btn-calcular">Calcular valor de mercado →</button>
+      </div>
+
+      <!-- ESTADO 2: LOADING -->
+      <div id="val-loading-state" style="display:none;">
+        <div class="val-loading">
+          <div class="val-spinner"></div>
+          <div class="val-loading-text" id="val-loading-text">Analizando tu propiedad...</div>
+          <div class="val-loading-step" id="val-loading-step">Aplicando modelo Varela</div>
+        </div>
+      </div>
+
+      <!-- ESTADO 3: RESULTADO -->
+      <div id="val-result-state" style="display:none;"></div>
+
+      <!-- ESTADO 4: ÉXITO -->
+      <div id="val-success-state" style="display:none;">
+        <div class="val-success">
+          <div class="val-success-icon">✓</div>
+          <div class="val-success-title">¡Listo! Te contactamos en breve</div>
+          <div class="val-success-text">Sebastián recibió tu consulta y te va a escribir por WhatsApp con el análisis completo de tu propiedad.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Modal secundario (Radar Inmobiliario) -->
+<div class="val-modal-overlay" id="val-modal">
+  <div class="val-modal" style="position:relative;">
+    <button class="val-modal-close" onclick="cerrarModal()">×</button>
+    <div class="val-modal-title" id="val-modal-title">Sumate al Radar Inmobiliario</div>
+    <div class="val-modal-sub" id="val-modal-sub">El Radar es nuestro grupo de inversores activos. Si tu precio es competitivo, en 48hs tenés interesados reales.</div>
+    <button class="val-btn" style="margin-top:16px;" onclick="cerrarModal()">Entendido →</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// CONFIGURACIÓN
+// ════════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://fwwzjynerfghqsakkyvq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_8F1HY-6hTbgfTnbKdCSAJA_J26tLIup';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Coeficientes Varela ya no son hardcodeados — vienen de la tabla
+// (clave 'coef_varela_min' y 'coef_varela_max').
+
+// ════════════════════════════════════════════════════════════
+// CONFIGURACIÓN del modelo (cargada desde Supabase al iniciar)
+// ════════════════════════════════════════════════════════════
+let CFG = null;
+
+const NOMBRE_ZONA = {
+  costanera:      'Av. Costanera',
+  av2camelias:    'Av. 2 y Camelias',
+  zonamar:        'Zona Mar',
+  interbalnearia: 'Av. Interbalnearia',
+  bosque:         'Bosque',
+  fondo:          'Fondo'
+};
+
+// Mapeo zona del form → sufijo en la tabla tasador_publico_config
+const ZONA_SUFIJO = {
+  costanera:      'costa',
+  av2camelias:    'av2',
+  zonamar:        'mar',
+  interbalnearia: 'inter',
+  bosque:         'bosque',
+  fondo:          'fondo'
+};
+
+// Zonas multifamiliares (PH/depto): la tierra es cara pero el cubierto
+// corresponde a unidades funcionales, no a casas individuales
+const ZONAS_MULTIFAMILIAR = new Set(['costanera','av2camelias','interbalnearia']);
+
+async function cargarConfig() {
+  const { data, error } = await sb.from('tasador_publico_config').select('clave, valor');
+  if (error) { console.error('[Tasador] Error cargando config:', error); return null; }
+  const cfg = {};
+  for (const row of data) cfg[row.clave] = parseFloat(row.valor);
+  return cfg;
+}
+
+// Helper: trae un valor con default por las dudas
+function v(clave, def = 0) {
+  if (!CFG) return def;
+  return (CFG[clave] !== undefined && !isNaN(CFG[clave])) ? CFG[clave] : def;
+}
+
+// Estado global
+let resultadoActual = null;
+
+// ════════════════════════════════════════════════════════════
+// MOTOR DE TASACIÓN (sin ML, basado en tabla tasador_publico_config)
+// ════════════════════════════════════════════════════════════
+//
+// Devuelve un objeto con TODO el desglose paso a paso, para que la
+// pantalla de calibración pueda mostrar exactamente qué sumó cada
+// variable. La función pública sólo usa los rangos finales, pero
+// guardamos todo en `breakdown` para diagnóstico.
+//
+// Inputs esperados (todos opcionales según tipo):
+//   { tipo, zona, cubiertos, lote, calidad, estado, antiguedad,
+//     gas, cloacas, pileta, quincho, deck,
+//     ambientes, vista, antDepto }   ← deptos
+// ════════════════════════════════════════════════════════════
+// Helper: redondea hacia abajo o arriba al múltiplo de 500 más cercano según contexto.
+// Para extremos de rango: el min se redondea HACIA ABAJO y el max HACIA ARRIBA,
+// para no comprimir el rango artificialmente.
+function redondear500(n, modo) {
+  const paso = 500;
+  if (modo === 'down') return Math.floor(n / paso) * paso;
+  if (modo === 'up')   return Math.ceil(n / paso) * paso;
+  return Math.round(n / paso) * paso;
+}
+
+function tasar(input) {
+  const { tipo, zona } = input;
+  const zSuf = ZONA_SUFIJO[zona] || 'bosque';
+  const breakdown = [];
+
+  let precioBase = 0;
+
+  if (tipo === 'depto') {
+    // ─── Camino DEPTO ─────────────────────────────────────────
+    const m2 = parseFloat(input.cubiertos) || 0;
+    const amb = String(input.ambientes || '2');
+    const ambKey = amb === '4' ? '4amb' : `${amb}amb`;
+    const precioM2 = v(`precio_depto_${ambKey}`);
+
+    precioBase = m2 * precioM2;
+    breakdown.push({ paso: `m² × precio_depto_${ambKey}`, calc: `${m2} × ${precioM2}`, valor: precioBase });
+
+    // Vista
+    const vistaMap = { frente: 'mult_vista_frente', lateral: 'mult_vista_lateral', contrafrente: 'mult_vista_contra' };
+    const multVista = v(vistaMap[input.vista] || 'mult_vista_lateral', 1);
+    precioBase *= multVista;
+    breakdown.push({ paso: `× vista (${input.vista})`, calc: `× ${multVista}`, valor: precioBase });
+
+    // Antigüedad (depto usa val-antiguedad: estrenar | reciente | antiguo, mapeamos)
+    const antMapDepto = {
+      estrenar: 'mult_ant_estrenar',
+      reciente: 'mult_ant_hasta10',
+      antiguo:  'mult_ant_10a25'   // los deptos viejos los penalizamos como 10-25
+    };
+    const multAntD = v(antMapDepto[input.antDepto] || 'mult_ant_hasta10', 1);
+    precioBase *= multAntD;
+    breakdown.push({ paso: `× antigüedad (${input.antDepto})`, calc: `× ${multAntD}`, valor: precioBase });
+
+    // Estacionamiento de depto (suma porcentual)
+    let sumaDeptoExtras = 0;
+    if (input.estacCub)  sumaDeptoExtras += v('add_depto_estac_cubierto');
+    if (input.estacDesc) sumaDeptoExtras += v('add_depto_estac_descubierto');
+    if (sumaDeptoExtras > 0) {
+      precioBase *= (1 + sumaDeptoExtras);
+      breakdown.push({ paso: `× (1 + estacionamiento ${sumaDeptoExtras.toFixed(3)})`, calc: `× ${(1 + sumaDeptoExtras).toFixed(3)}`, valor: precioBase });
+    }
+
+  } else {
+    // ─── Camino CASA / DUPLEX / LOTE ──────────────────────────
+    const cubiertos = parseFloat(input.cubiertos) || 0;
+    const lote      = parseFloat(input.lote) || 0;
+
+    if (tipo === 'lote') {
+      const precioM2Lote = v(`precio_lote_${zSuf}`);
+      precioBase = lote * precioM2Lote;
+      breakdown.push({ paso: `m² lote × precio_lote_${zSuf}`, calc: `${lote} × ${precioM2Lote}`, valor: precioBase });
+    } else {
+      // Casa o duplex: precio_construido + precio_lote_libre
+      const calidad = input.calidad || 'estandar';
+      const precioM2Constr = v(`precio_constr_${zSuf}_${calidad}`);
+      const precioM2Lote   = v(`precio_lote_${zSuf}`);
+
+      const valorConstr = cubiertos * precioM2Constr;
+      breakdown.push({ paso: `m² cubiertos × precio_constr_${zSuf}_${calidad}`, calc: `${cubiertos} × ${precioM2Constr}`, valor: valorConstr });
+
+      const m2Libre = Math.max(0, lote - cubiertos);
+      const valorLote = m2Libre * precioM2Lote;
+      breakdown.push({ paso: `m² lote libre × precio_lote_${zSuf}`, calc: `${m2Libre} × ${precioM2Lote}`, valor: valorLote });
+
+      precioBase = valorConstr + valorLote;
+      breakdown.push({ paso: `subtotal`, calc: `construcción + lote libre`, valor: precioBase });
+    }
+
+    // Antigüedad (sólo casa/duplex, los lotes no tienen antigüedad)
+    if (tipo !== 'lote') {
+      const antMapCasa = {
+        estrenar: 'mult_ant_estrenar',
+        hasta10:  'mult_ant_hasta10',
+        diez25:   'mult_ant_10a25',
+        mas25:    'mult_ant_mas25'
+      };
+      const multAnt = v(antMapCasa[input.antiguedad] || 'mult_ant_hasta10', 1);
+      precioBase *= multAnt;
+      breakdown.push({ paso: `× antigüedad (${input.antiguedad})`, calc: `× ${multAnt}`, valor: precioBase });
+
+      // Estado
+      const estMap = { muybueno: 'mult_est_muybueno', bueno: 'mult_est_bueno', reciclar: 'mult_est_reciclar' };
+      const multEst = v(estMap[input.estado] || 'mult_est_bueno', 1);
+      precioBase *= multEst;
+      breakdown.push({ paso: `× estado (${input.estado})`, calc: `× ${multEst}`, valor: precioBase });
+    }
+
+    // Servicios (gas y cloacas)
+    if (input.gas)     { const m = v('mult_serv_gas', 1);     precioBase *= m; breakdown.push({ paso:'× gas natural',     calc:`× ${m}`, valor: precioBase }); }
+    if (input.cloacas) { const m = v('mult_serv_cloacas', 1); precioBase *= m; breakdown.push({ paso:'× cloacas',         calc:`× ${m}`, valor: precioBase }); }
+
+    // Amenities (sumas porcentuales) — incluye estacionamiento y galería para casa/duplex
+    let sumaAmenities = 0;
+    if (input.pileta)    sumaAmenities += v('add_pileta');
+    if (input.quincho)   sumaAmenities += v('add_quincho');
+    if (input.deck)      sumaAmenities += v('add_deck');
+    if (input.estacCub)  sumaAmenities += v('add_estac_cubierto');
+    if (input.estacDesc) sumaAmenities += v('add_estac_descubierto');
+    if (input.galeria)   sumaAmenities += v('add_galeria_semi');
+    if (sumaAmenities > 0) {
+      precioBase *= (1 + sumaAmenities);
+      breakdown.push({ paso:`× (1 + amenities)`, calc:`× ${(1 + sumaAmenities).toFixed(3)}`, valor: precioBase });
+    }
+  }
+
+  // ─── Rango de publicación (apertura ± alrededor del valor central)
+  const apertura = v('rango_apertura', 0.08);
+  const pubMinRaw = precioBase * (1 - apertura);
+  const pubMaxRaw = precioBase * (1 + apertura);
+
+  // ─── Rango de cierre (coef. Varela)
+  const cMin = v('coef_varela_min', 0.80);
+  const cMax = v('coef_varela_max', 0.85);
+  const cierreMinRaw = pubMinRaw * cMin;
+  const cierreMaxRaw = pubMaxRaw * cMax;
+
+  // ─── Redondeo a múltiplos de 500 (min hacia abajo, max hacia arriba)
+  const pubMin    = redondear500(pubMinRaw,    'down');
+  const pubMax    = redondear500(pubMaxRaw,    'up');
+  const cierreMin = redondear500(cierreMinRaw, 'down');
+  const cierreMax = redondear500(cierreMaxRaw, 'up');
+
+  return {
+    precioBase,
+    pubMin, pubMax,
+    cierreMin, cierreMax,
+    apertura, coefMin: cMin, coefMax: cMax,
+    breakdown
+  };
+}
+
+// ════════════════════════════════════════════════════════════
+// CÁLCULO PRINCIPAL (handler del botón)
+// ════════════════════════════════════════════════════════════
+async function calcularValor() {
+  // Asegurar config cargada
+  if (!CFG) CFG = await cargarConfig();
+  if (!CFG) {
+    setEstado('result');
+    mostrarErrorAPI();
+    return;
+  }
+
+  const tipo = document.getElementById('val-tipo').value;
+  const zona = document.getElementById('val-zona').value;
+  const cubiertos = parseInt(document.getElementById('val-cubiertos').value) || 0;
+  const lote = parseInt(document.getElementById('val-lote').value) || 0;
+  const gas = document.getElementById('val-gas').checked;
+  const cloacas = document.getElementById('val-cloacas').checked;
+  const pileta = document.getElementById('val-pileta').checked;
+  const quincho = document.getElementById('val-quincho').checked;
+  const deck = document.getElementById('val-deck').checked;
+  const estacCub  = document.getElementById('val-estac-cub').checked;
+  const estacDesc = document.getElementById('val-estac-desc').checked;
+  const galeria   = document.getElementById('val-galeria').checked;
+  const urgencia = document.getElementById('val-urgencia').value;
+
+  const calidad   = (tipo !== 'depto' && tipo !== 'lote') ? document.getElementById('val-calidad').value : null;
+  const estado    = (tipo !== 'depto' && tipo !== 'lote') ? document.getElementById('val-estado').value : null;
+  const antiguedad= (tipo !== 'depto' && tipo !== 'lote') ? document.getElementById('val-ant-casa').value : null;
+
+  // Variables específicas de depto
+  const ambientes = tipo === 'depto' ? document.getElementById('val-ambientes').value : null;
+  const antDepto  = tipo === 'depto' ? document.getElementById('val-antiguedad').value : null;
+  const vista     = tipo === 'depto' ? document.getElementById('val-vista').value : null;
+  // Estacionamiento de depto (separado)
+  const deptoEstacCub  = tipo === 'depto' ? document.getElementById('val-depto-estac-cub').checked : false;
+  const deptoEstacDesc = tipo === 'depto' ? document.getElementById('val-depto-estac-desc').checked : false;
+
+  // Para tipo 'lote', el usuario ingresa en val-cubiertos (val-lote está oculto).
+  // Normalizamos antes de validar y de pasar al motor.
+  const cubiertosNorm = tipo === 'lote' ? 0 : cubiertos;
+  const loteNorm      = tipo === 'lote' ? cubiertos : lote;
+
+  // Validación
+  const m2Principal = tipo === 'lote' ? loteNorm : cubiertosNorm;
+  if (!m2Principal || m2Principal < 20) {
+    alert('Por favor ingresá los metros cuadrados (mínimo 20m²)');
+    return;
+  }
+
+  // Loading visual (no hace falta esperar nada, pero da sensación de cálculo)
+  setEstado('loading');
+  setLoadingStep('Aplicando modelo Varela...');
+  await new Promise(r => setTimeout(r, 700));
+
+  const t = tasar({
+    tipo, zona, cubiertos: cubiertosNorm, lote: loteNorm,
+    calidad, estado, antiguedad,
+    gas, cloacas, pileta, quincho, deck,
+    estacCub: tipo === 'depto' ? deptoEstacCub  : estacCub,
+    estacDesc:tipo === 'depto' ? deptoEstacDesc : estacDesc,
+    galeria,
+    ambientes, antDepto, vista
+  });
+
+  setLoadingStep('Generando rangos de publicación y cierre...');
+  await new Promise(r => setTimeout(r, 400));
+
+  resultadoActual = {
+    tipo, zona, m2: m2Principal, cubiertos: cubiertosNorm, lote: loteNorm,
+    calidad, estado, antiguedad,
+    gas, cloacas, pileta, quincho, deck, galeria,
+    estacCub, estacDesc, deptoEstacCub, deptoEstacDesc,
+    urgencia, ambientes, antDepto, vista,
+    precioBase: t.precioBase,
+    pubMin: t.pubMin,  pubMax: t.pubMax,
+    cierreMin: t.cierreMin, cierreMax: t.cierreMax,
+    breakdown: t.breakdown
+  };
+
+  setEstado('result');
+  mostrarResultado();
+}
+
+// ════════════════════════════════════════════════════════════
+// UI: ESTADOS
+// ════════════════════════════════════════════════════════════
+function setEstado(estado) {
+  ['form','loading','result','success'].forEach(e => {
+    document.getElementById(`val-${e}-state`).style.display = (e === estado) ? 'block' : 'none';
+  });
+}
+
+function setLoadingStep(txt) {
+  document.getElementById('val-loading-step').textContent = txt;
+}
+
+const fmt = v => 'USD ' + Math.round(v).toLocaleString('es-AR');
+const fmtRange = (a,b) => `${fmt(a)} – ${fmt(b)}`;
+
+function mostrarResultado() {
+  const r = resultadoActual;
+  const tipoNombre = { casa:'Casa', duplex:'Duplex', lote:'Lote', depto:'Departamento' }[r.tipo];
+  const zonaNombre = NOMBRE_ZONA[r.zona];
+
+  // Detalles extra para deptos
+  let detalleExtra = '';
+  if (r.tipo === 'depto') {
+    const ambStr = r.ambientes === '4' ? '4+ ambientes' : `${r.ambientes} amb.`;
+    const vistaStr = { frente:'vista al mar', lateral:'vista lateral', contrafrente:'sin vista' }[r.vista];
+    const antigStr = { estrenar:'a estrenar', reciente:'hasta 10 años', antiguo:'+10 años' }[r.antDepto];
+    detalleExtra = ` · ${ambStr} · ${vistaStr} · ${antigStr}`;
+  } else if (r.tipo !== 'lote') {
+    const calMap = { premium:'premium', estandar:'estándar', economica:'económica' };
+    const estMap = { muybueno:'muy bueno', bueno:'bueno', reciclar:'a reciclar' };
+    detalleExtra = ` · ${calMap[r.calidad] || ''} · ${estMap[r.estado] || ''}`;
+  }
+
+  document.getElementById('val-result-state').innerHTML = `
+    <div class="val-result val-gate-wrap">
+
+      <!-- Resultado difuminado de fondo -->
+      <div class="val-gate-blur">
+        <div class="val-result-eyebrow">Valor estimado para tu propiedad</div>
+        <div class="val-result-meta">
+          <b>${tipoNombre}</b> · ${r.m2}m² · zona <b>${zonaNombre}</b>${detalleExtra}
+        </div>
+        <div class="val-range-card">
+          <div class="val-range-label">Valor de mercado publicado <span class="val-range-tag">Portales</span></div>
+          <div class="val-range-value">${fmtRange(r.pubMin, r.pubMax)}</div>
+          <div class="val-range-sub">Lo que vas a ver publicado en los portales inmobiliarios</div>
+        </div>
+        <div class="val-range-card cierre">
+          <div class="val-range-label">Valor realista de venta <span class="val-range-tag real">Coef. Varela</span></div>
+          <div class="val-range-value">${fmtRange(r.cierreMin, r.cierreMax)}</div>
+          <div class="val-range-sub">Lo que realmente vas a poder vender, basado en cierres reales en Costa del Este</div>
+        </div>
+        <div class="val-disclaimer">💡 Estimación basada en 27 años de experiencia en Costa del Este.</div>
+      </div>
+
+      <!-- Gate: formulario de contacto obligatorio -->
+      <div class="val-gate-overlay">
+        <div class="val-gate-box">
+          <div class="val-gate-icon">🔒</div>
+          <div class="val-gate-title">Tu tasación está lista</div>
+          <div class="val-gate-sub">Dejá tus datos para ver el valor y recibir el análisis completo por WhatsApp.</div>
+          <div class="val-gate-fields">
+            <div class="val-row">
+              <label class="val-label">Nombre y apellido</label>
+              <input class="val-input" type="text" id="val-nombre" placeholder="Ej: Juan Pérez">
+            </div>
+            <div class="val-row">
+              <label class="val-label">WhatsApp</label>
+              <input class="val-input" type="tel" id="val-tel" placeholder="Ej: 11 5555-5555">
+            </div>
+            <div class="val-row">
+              <label class="val-label">Email <span style="text-transform:none;color:var(--text-3);">— opcional</span></label>
+              <input class="val-input" type="email" id="val-email" placeholder="tu@email.com">
+            </div>
+            <div class="val-row">
+              <label class="val-label">Calle y altura aproximada</label>
+              <input class="val-input" type="text" id="val-direccion" placeholder="Ej: Las Rosas 234">
+            </div>
+          </div>
+          <button class="val-btn" id="val-btn-enviar" style="margin-top:4px;">Ver mi tasación →</button>
+          <div class="val-gate-note">🔒 Solo Sebastián Varela accede a esta información. No se publica ni comparte.</div>
+        </div>
+      </div>
+
+    </div>
+    <button class="val-back" onclick="setEstado('form')" style="display:block;text-align:center;margin-top:12px;">← Volver y ajustar datos</button>
+  `;
+}
+
+function mostrarErrorAPI() {
+  document.getElementById('val-result-state').innerHTML = `
+    <div class="val-result">
+      <div class="val-error">⚠️ No pudimos calcular en este momento.</div>
+      <div class="val-empty">
+        <div class="val-empty-text">Sebastián te lo calcula con datos internos en menos de 24hs.</div>
+        <button class="val-cta val-cta-primary" style="display:inline-block;padding:14px 32px;" onclick="abrirModal('tasacion')">Solicitar tasación manual</button>
+        <br>
+        <button class="val-back" onclick="setEstado('form')">← Reintentar</button>
+      </div>
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════════════════════
+// MODAL DE CONTACTO
+// ════════════════════════════════════════════════════════════
+function abrirModal(modo) {
+  resultadoActual.modoCTA = modo;
+  const titles = {
+    reporte:   'Recibí el análisis completo',
+    radar:     'Sumate al Radar Inmobiliario',
+    tasacion:  'Solicitar tasación personalizada'
+  };
+  const subs = {
+    reporte:   'Te enviamos el reporte detallado por WhatsApp con los comparables analizados.',
+    radar:     'El Radar es nuestro grupo de inversores activos. Si tu precio es competitivo, en 48hs tenés interesados reales.',
+    tasacion:  'Sebastián coordina una visita o llamada para tasarla con precisión. Sin compromiso.'
+  };
+  document.getElementById('val-modal-title').textContent = titles[modo];
+  document.getElementById('val-modal-sub').textContent = subs[modo];
+  document.getElementById('val-modal').classList.add('show');
+}
+
+function cerrarModal() {
+  document.getElementById('val-modal').classList.remove('show');
+}
+
+async function enviarLead() {
+  const nombre = document.getElementById('val-nombre').value.trim();
+  const tel = document.getElementById('val-tel').value.trim();
+  const email = document.getElementById('val-email').value.trim();
+  const direccion = document.getElementById('val-direccion').value.trim();
+
+  if (!nombre || !tel) { alert('Nombre y WhatsApp son obligatorios'); return; }
+  if (!direccion) { alert('Por favor ingresá la calle y altura aproximada de la propiedad'); return; }
+
+  const btn = document.getElementById('val-btn-enviar');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+
+  const r = resultadoActual;
+  const tipoCRM = 'Propietario';
+
+  // Armado de notas con todo el contexto del cálculo
+  const NOMBRE_ZONA_FULL = {
+    costanera:      'Av. Costanera',
+    av2camelias:    'Av. 2 y Camelias',
+    zonamar:        'Zona Mar',
+    interbalnearia: 'Av. Interbalnearia',
+    bosque:         'Bosque',
+    fondo:          'Fondo'
+  };
+  let notas = `🏷️ TASACIÓN ONLINE · ${new Date().toLocaleDateString('es-AR')}\n`;
+  notas += `Tipo: ${r.tipo} · Zona: ${NOMBRE_ZONA_FULL[r.zona] || r.zona} · ${r.m2}m²\n`;
+  if (r.tipo === 'depto') {
+    const vistaTxt = { frente:'frente al mar', lateral:'lateral', contrafrente:'contrafrente' }[r.vista] || r.vista;
+    const antTxt   = { estrenar:'a estrenar', reciente:'hasta 10 años', antiguo:'+10 años' }[r.antDepto] || r.antDepto;
+    notas += `Ambientes: ${r.ambientes} | Vista: ${vistaTxt} | Antigüedad: ${antTxt}\n`;
+    const estacTxt = [
+      r.deptoEstacCub && 'cubierto',
+      r.deptoEstacDesc && 'descubierto'
+    ].filter(Boolean).join(', ') || 'sin cochera';
+    notas += `Estacionamiento: ${estacTxt}\n`;
+  } else {
+    if (r.cubiertos) notas += `Cubiertos: ${r.cubiertos}m² | Lote: ${r.lote || 's/d'}m²\n`;
+    if (r.tipo !== 'lote') {
+      const calTxt = { premium:'premium', estandar:'estándar', economica:'económica' }[r.calidad] || r.calidad;
+      const estTxt = { muybueno:'muy bueno', bueno:'bueno', reciclar:'a reciclar' }[r.estado] || r.estado;
+      const antTxt = { estrenar:'a estrenar', hasta10:'hasta 10 años', diez25:'10 a 25 años', mas25:'+25 años' }[r.antiguedad] || r.antiguedad;
+      notas += `Calidad: ${calTxt} | Estado: ${estTxt} | Antigüedad: ${antTxt}\n`;
+    }
+    const serv = [r.gas && 'Gas', r.cloacas && 'Cloacas'].filter(Boolean).join(', ') || 'Ninguno';
+    notas += `Servicios: ${serv}\n`;
+    const amen = [
+      r.pileta && 'Piscina',
+      r.quincho && 'Parrilla',
+      r.deck && 'Deck',
+      r.estacCub && 'Estac. cubierto',
+      r.estacDesc && 'Estac. descubierto',
+      r.galeria && 'Galería semicub.'
+    ].filter(Boolean).join(', ') || 'Ninguno';
+    notas += `Amenities: ${amen}\n`;
+  }
+  notas += `Urgencia: ${r.urgencia}\n`;
+  if (direccion) notas += `Dirección: ${direccion}\n`;
+  notas += `\n📊 RESULTADO (modelo Varela):\n`;
+  notas += `Publicación: USD ${r.pubMin.toLocaleString('es-AR')} – ${r.pubMax.toLocaleString('es-AR')}\n`;
+  notas += `Cierre estimado: USD ${r.cierreMin.toLocaleString('es-AR')} – ${r.cierreMax.toLocaleString('es-AR')}\n`;
+  notas += `\nCTA: gate_tasacion`;
+
+  const busqueda = `Tasación online · ${r.tipo} ${r.m2}m² · USD ${r.cierreMin.toLocaleString('es-AR')}-${r.cierreMax.toLocaleString('es-AR')}`;
+
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+  const { error } = await sb.from('contactos').insert({
+    id,
+    nombre,
+    tel,
+    email: email || null,
+    tipo: tipoCRM,
+    origen: 'tasacion_online',
+    busqueda,
+    notas
+  });
+
+  if (error) {
+    console.error(error);
+    btn.disabled = false; btn.textContent = 'Ver mi tasación →';
+    alert('Hubo un error al enviar. Probá de nuevo o escribinos directo por WhatsApp.');
+    return;
+  }
+
+  // Mostrar el resultado desbloqueado
+  mostrarResultadoDesbloqueado();
+}
+
+// ════════════════════════════════════════════════════════════
+// RESULTADO DESBLOQUEADO (post-contacto)
+// ════════════════════════════════════════════════════════════
+function mostrarResultadoDesbloqueado() {
+  const r = resultadoActual;
+  const tipoNombre = { casa:'Casa', duplex:'Duplex', lote:'Lote', depto:'Departamento' }[r.tipo];
+  const zonaNombre = NOMBRE_ZONA[r.zona];
+
+  let detalleExtra = '';
+  if (r.tipo === 'depto') {
+    const ambStr = r.ambientes === '4' ? '4+ ambientes' : `${r.ambientes} amb.`;
+    const vistaStr = { frente:'vista al mar', lateral:'vista lateral', contrafrente:'sin vista' }[r.vista];
+    const antigStr = { estrenar:'a estrenar', reciente:'hasta 10 años', antiguo:'+10 años' }[r.antDepto];
+    detalleExtra = ` · ${ambStr} · ${vistaStr} · ${antigStr}`;
+  } else if (r.tipo !== 'lote') {
+    const calMap = { premium:'premium', estandar:'estándar', economica:'económica' };
+    const estMap = { muybueno:'muy bueno', bueno:'bueno', reciclar:'a reciclar' };
+    detalleExtra = ` · ${calMap[r.calidad] || ''} · ${estMap[r.estado] || ''}`;
+  }
+
+  document.getElementById('val-result-state').innerHTML = `
+    <div class="val-result" style="animation:fadeIn 0.5s;">
+      <div style="background:#DCFCE7;border:1px solid #86EFAC;border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:13px;color:#15803D;font-weight:600;">
+        ✓ ¡Listo! Sebastián te escribe por WhatsApp con el análisis completo.
+      </div>
+
+      <div class="val-result-eyebrow">Valor estimado para tu propiedad</div>
+      <div class="val-result-meta">
+        <b>${tipoNombre}</b> · ${r.m2}m² · zona <b>${zonaNombre}</b>${detalleExtra}
+      </div>
+
+      <div class="val-range-card">
+        <div class="val-range-label">
+          Valor de mercado publicado
+          <span class="val-range-tag">Portales</span>
+        </div>
+        <div class="val-range-value">${fmtRange(r.pubMin, r.pubMax)}</div>
+        <div class="val-range-sub">Lo que vas a ver publicado en los portales inmobiliarios</div>
+      </div>
+
+      <div class="val-range-card cierre">
+        <div class="val-range-label">
+          Valor realista de venta
+          <span class="val-range-tag real">Coef. Varela</span>
+        </div>
+        <div class="val-range-value">${fmtRange(r.cierreMin, r.cierreMax)}</div>
+        <div class="val-range-sub">Lo que realmente vas a poder vender, basado en mi experiencia de cierres en Costa del Este</div>
+      </div>
+
+      <div class="val-disclaimer">
+        💡 Estos rangos son estimaciones basadas en el conocimiento del mercado de Sebastián Varela tras 27 años operando en Costa del Este. Una visita técnica permite ajustar el valor con precisión.
+      </div>
+
+      <div class="val-cta-row">
+        <button class="val-cta val-cta-secondary" onclick="abrirModal('radar')">⚡ Sumar al Radar Inmobiliario</button>
+        <button class="val-cta val-cta-primary" onclick="setEstado('form')">← Nueva tasación</button>
+      </div>
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════════════════════
+// EVENTOS
+// ════════════════════════════════════════════════════════════
+document.getElementById('val-btn-calcular').addEventListener('click', calcularValor);
+
+// val-btn-enviar se renderiza dinámicamente en el gate, usamos delegación
+document.addEventListener('click', (e) => {
+  if (e.target && e.target.id === 'val-btn-enviar') enviarLead();
+});
+
+// Cambio de tipo: ajusta UI según el tipo seleccionado
+document.getElementById('val-tipo').addEventListener('change', (e) => {
+  const tipo = e.target.value;
+  const lbl = document.getElementById('val-label-cubiertos');
+  const rowLote = document.getElementById('val-row-lote');
+  const rowServicios = document.getElementById('val-row-servicios');
+  const rowConstruccion = document.getElementById('val-row-construccion');
+  const deptoFields = document.getElementById('val-depto-fields');
+
+  if (tipo === 'lote') {
+    lbl.textContent = 'm² del lote';
+    document.getElementById('val-cubiertos').placeholder = 'Ej: 500';
+    rowLote.style.display = 'none';
+    rowServicios.style.display = 'block';
+    rowConstruccion.style.display = 'none';
+    deptoFields.style.display = 'none';
+    actualizarZonasDisponibles('terrestre');
+  } else if (tipo === 'depto') {
+    lbl.textContent = 'm² Cubiertos';
+    document.getElementById('val-cubiertos').placeholder = 'Ej: 60';
+    rowLote.style.display = 'none';
+    rowServicios.style.display = 'none';
+    rowConstruccion.style.display = 'none';
+    deptoFields.style.display = 'block';
+    actualizarZonasDisponibles('depto');
+  } else {
+    // casa o duplex
+    lbl.textContent = 'm² Cubiertos';
+    document.getElementById('val-cubiertos').placeholder = 'Ej: 120';
+    rowLote.style.display = 'block';
+    rowServicios.style.display = 'block';
+    rowConstruccion.style.display = 'block';
+    deptoFields.style.display = 'none';
+    actualizarZonasDisponibles('terrestre');
+  }
+});
+
+// Filtra opciones de zona según tipo de propiedad
+// · depto: solo zonas multifamiliares (Costanera, Av.2+Camelias, Interbalnearia)
+// · lote/casa/duplex: todas las zonas (incluyendo multifamiliares — también tienen lotes)
+function actualizarZonasDisponibles(modo) {
+  const zonaSelect = document.getElementById('val-zona');
+  const opciones = zonaSelect.querySelectorAll('option');
+
+  const soloMultifamiliar = ['costanera','av2camelias','interbalnearia'];
+  const soloResidencial   = ['zonamar','bosque','fondo'];
+
+  if (modo === 'depto') {
+    opciones.forEach(opt => {
+      opt.style.display = soloMultifamiliar.includes(opt.value) ? '' : 'none';
+    });
+    // Forzar primera opción válida si la actual no aplica
+    if (!soloMultifamiliar.includes(zonaSelect.value)) {
+      zonaSelect.value = 'costanera';
+    }
+  } else {
+    // Casa / duplex / lote: todas las zonas disponibles
+    opciones.forEach(opt => { opt.style.display = ''; });
+    // Si venía de modo depto con zona multifamiliar, dejar como está
+    // (los multifamiliares también tienen casas/lotes)
+    if (soloMultifamiliar.includes(zonaSelect.value) && modo !== 'terrestre_libre') {
+      // Mantener la zona — es válida para casa/lote también
+    }
+  }
+}
+
+// Inicializar: por default se carga "casa" con zona "bosque" seleccionado
+actualizarZonasDisponibles('terrestre');
+
+// Cargar config desde Supabase apenas se abre la página (así el primer cálculo es instantáneo)
+(async () => {
+  CFG = await cargarConfig();
+  if (!CFG) console.warn('[Tasador] La config no cargó. Verificá que la tabla tasador_publico_config exista y tenga datos.');
+  else console.log(`[Tasador] Config cargada: ${Object.keys(CFG).length} variables.`);
+})();
+
+// Cerrar modal con click en overlay
+document.getElementById('val-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'val-modal') cerrarModal();
+});
+</script>
+
+</body>
+</html>
