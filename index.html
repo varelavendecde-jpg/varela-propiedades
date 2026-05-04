@@ -41,9 +41,9 @@ a{color:inherit;}
 .ic-sm{width:14px;height:14px;stroke-width:2;}
 
 /* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(14,14,16,0.85);border-bottom:1px solid var(--border);padding:0 40px;display:flex;justify-content:space-between;align-items:center;height:68px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(14,14,16,0.85);border-bottom:1px solid var(--border);padding:0 40px;display:flex;justify-content:space-between;align-items:center;height:88px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);}
 .nav-logo{display:flex;align-items:center;gap:14px;text-decoration:none;}
-.nav-logo img{height:38px;width:auto;display:block;}
+.nav-logo img{height:64px;width:auto;display:block;}
 .nav-links{display:flex;gap:6px;align-items:center;}
 .nav-link{color:var(--text-2);text-decoration:none;font-size:13px;padding:8px 14px;border-radius:8px;transition:all 0.2s;font-weight:500;}
 .nav-link:hover{color:#fff;background:rgba(255,255,255,0.06);}
@@ -52,7 +52,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(14,14,16,0.8
 .nav-cta:hover{background:var(--amarillo-light);transform:translateY(-1px);box-shadow:0 6px 20px rgba(245,230,66,0.25);}
 
 /* HERO 2 COLS */
-.hero{margin-top:68px;background:var(--bg);padding:80px 40px 100px;position:relative;overflow:hidden;}
+.hero{margin-top:88px;background:var(--bg);padding:80px 40px 100px;position:relative;overflow:hidden;}
 .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%, rgba(245,230,66,0.05) 0%, transparent 55%);pointer-events:none;}
 .hero-inner{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:1.05fr 1fr;gap:60px;align-items:center;position:relative;z-index:1;}
 .hero-eyebrow{font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--amarillo);font-weight:600;margin-bottom:28px;}
@@ -316,9 +316,10 @@ footer{background:var(--bg-2);padding:48px 40px;text-align:center;border-top:1px
   .sebastian-foto-wrap{margin:0 auto;}
 }
 @media(max-width:768px){
-  nav{padding:0 16px;height:60px;}
+  nav{padding:0 16px;height:72px;}
+  .nav-logo img{height:48px;}
   .nav-links{display:none;}
-  .hero{padding:50px 20px 60px;}
+  .hero{padding:50px 20px 60px;margin-top:72px;}
   .hero-title{font-size:38px;letter-spacing:-1px;}
   .stats-bar{padding:28px 20px;}
   .stat-value{font-size:38px;}
