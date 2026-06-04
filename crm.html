@@ -760,41 +760,76 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
               <div class="form-group" style="margin:0" id="tas-row-lote-total">
                 <label class="form-label">Superficie total del lote (m²)</label>
                 <input class="form-input" type="number" id="tas-m2-lote" placeholder="Ej: 500" min="1">
+                <div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
+                  <span style="font-size:11px;color:var(--text-3);flex:1;">% ajuste lote (override):</span>
+                  <input type="number" id="tas-adj-lote" style="width:58px;padding:3px 8px;border:1px solid var(--border-2);border-radius:4px;font-size:12px;text-align:right;" placeholder="auto">
+                  <span style="font-size:11px;color:var(--text-3);flex-shrink:0;">%</span>
+                </div>
               </div>
 
               <div class="form-group" style="margin:0" id="tas-row-estado">
                 <label class="form-label">Estado de la propiedad</label>
-                <select class="form-input" id="tas-estado">
-                  <option value="estrenar">A estrenar (+10%)</option>
-                  <option value="muy_bueno">Muy buen estado (+5%)</option>
-                  <option value="bueno" selected>Buen estado (0%)</option>
-                  <option value="reciclar">A reciclar (−15%)</option>
+                <select class="form-input" id="tas-estado" onchange="actualizarAdjEstado()">
+                  <option value="estrenar">A estrenar</option>
+                  <option value="muy_bueno">Muy buen estado</option>
+                  <option value="bueno" selected>Buen estado</option>
+                  <option value="reciclar">A reciclar</option>
                 </select>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
+                  <span style="font-size:11px;color:var(--text-3);flex:1;">% ajuste aplicado:</span>
+                  <input type="number" id="tas-adj-estado" style="width:58px;padding:3px 8px;border:1px solid var(--border-2);border-radius:4px;font-size:12px;text-align:right;">
+                  <span style="font-size:11px;color:var(--text-3);flex-shrink:0;">%</span>
+                </div>
               </div>
 
               <div class="form-group" style="margin:0" id="tas-row-calidad">
                 <label class="form-label">Calidad constructiva</label>
-                <select class="form-input" id="tas-calidad">
-                  <option value="premium">Premium (+10%)</option>
-                  <option value="buena">Buena (+5%)</option>
-                  <option value="estandar" selected>Estándar (0%)</option>
+                <select class="form-input" id="tas-calidad" onchange="actualizarAdjCalidad()">
+                  <option value="premium">Premium</option>
+                  <option value="buena">Buena</option>
+                  <option value="estandar" selected>Estándar</option>
                 </select>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
+                  <span style="font-size:11px;color:var(--text-3);flex:1;">% ajuste aplicado:</span>
+                  <input type="number" id="tas-adj-calidad" style="width:58px;padding:3px 8px;border:1px solid var(--border-2);border-radius:4px;font-size:12px;text-align:right;">
+                  <span style="font-size:11px;color:var(--text-3);flex-shrink:0;">%</span>
+                </div>
               </div>
 
               <div id="tas-row-amenities">
                 <label class="form-label">Amenities</label>
                 <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
-                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;"><input type="checkbox" id="tas-piscina" style="accent-color:var(--amarillo-dark);width:15px;height:15px;"> 🏊 Piscina (+6%)</label>
-                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;"><input type="checkbox" id="tas-parrilla" style="accent-color:var(--amarillo-dark);width:15px;height:15px;"> 🔥 Parrilla / Quincho (+3%)</label>
-                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;"><input type="checkbox" id="tas-deck" style="accent-color:var(--amarillo-dark);width:15px;height:15px;"> 🪵 Deck grande (+1%)</label>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;flex:1;min-width:0;"><input type="checkbox" id="tas-piscina" style="accent-color:var(--amarillo-dark);width:15px;height:15px;flex-shrink:0;"> 🏊 Piscina</label>
+                    <input type="number" id="tas-adj-piscina" style="width:46px;padding:2px 6px;border:1px solid var(--border-2);border-radius:4px;font-size:11px;text-align:right;flex-shrink:0;">
+                    <span style="font-size:11px;color:var(--text-3);flex-shrink:0;">%</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;flex:1;min-width:0;"><input type="checkbox" id="tas-parrilla" style="accent-color:var(--amarillo-dark);width:15px;height:15px;flex-shrink:0;"> 🔥 Parrilla / Quincho</label>
+                    <input type="number" id="tas-adj-parrilla" style="width:46px;padding:2px 6px;border:1px solid var(--border-2);border-radius:4px;font-size:11px;text-align:right;flex-shrink:0;">
+                    <span style="font-size:11px;color:var(--text-3);flex-shrink:0;">%</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;flex:1;min-width:0;"><input type="checkbox" id="tas-deck" style="accent-color:var(--amarillo-dark);width:15px;height:15px;flex-shrink:0;"> 🪵 Deck grande</label>
+                    <input type="number" id="tas-adj-deck" style="width:46px;padding:2px 6px;border:1px solid var(--border-2);border-radius:4px;font-size:11px;text-align:right;flex-shrink:0;">
+                    <span style="font-size:11px;color:var(--text-3);flex-shrink:0;">%</span>
+                  </div>
                 </div>
               </div>
 
               <div class="form-group" style="margin:0" id="tas-row-servicios">
                 <label class="form-label">Servicios</label>
                 <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
-                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;"><input type="checkbox" id="tas-gas" style="accent-color:var(--amarillo-dark);width:15px;height:15px;"> 🔥 Gas natural (+10%)</label>
-                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;"><input type="checkbox" id="tas-cloacas" style="accent-color:var(--amarillo-dark);width:15px;height:15px;"> 🚰 Cloacas (+5%)</label>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;flex:1;min-width:0;"><input type="checkbox" id="tas-gas" style="accent-color:var(--amarillo-dark);width:15px;height:15px;flex-shrink:0;"> 🔥 Gas natural</label>
+                    <input type="number" id="tas-adj-gas" style="width:46px;padding:2px 6px;border:1px solid var(--border-2);border-radius:4px;font-size:11px;text-align:right;flex-shrink:0;">
+                    <span style="font-size:11px;color:var(--text-3);flex-shrink:0;">%</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;flex:1;min-width:0;"><input type="checkbox" id="tas-cloacas" style="accent-color:var(--amarillo-dark);width:15px;height:15px;flex-shrink:0;"> 🚰 Cloacas</label>
+                    <input type="number" id="tas-adj-cloacas" style="width:46px;padding:2px 6px;border:1px solid var(--border-2);border-radius:4px;font-size:11px;text-align:right;flex-shrink:0;">
+                    <span style="font-size:11px;color:var(--text-3);flex-shrink:0;">%</span>
+                  </div>
                   <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;"><input type="checkbox" id="tas-asfalto" style="accent-color:var(--amarillo-dark);width:15px;height:15px;"> 🛣️ Asfalto (0%)</label>
                 </div>
               </div>
@@ -802,6 +837,11 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
               <div class="form-group" style="margin:0" id="tas-row-valor-lote">
                 <label class="form-label">Valor del lote (USD) <span style="font-size:10px;color:var(--text-3);">— opcional, se suma al resultado</span></label>
                 <input class="form-input" type="number" id="tas-valor-lote" placeholder="Ej: 45000" min="0">
+              </div>
+
+              <div class="form-group" style="margin:0" id="tas-row-precio-varela-manual">
+                <label class="form-label">Precio Varela manual (override) <span style="font-size:10px;color:var(--text-3);">— dejar vacío para usar el cálculo automático</span></label>
+                <input class="form-input" type="number" id="tas-precio-varela-manual" placeholder="Ej: 92500" min="0">
               </div>
 
               <div style="border-top:1px solid var(--border);margin:4px 0;padding-top:12px;">
@@ -4084,6 +4124,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrarModal();});
 // =====================================================================
 
 let _tasadorConfig = {};
+let _coefVarela = {};
 
 async function cargarConfigTasador() {
   const {data, error} = await sb.from('tasador_config').select('*');
@@ -4091,6 +4132,44 @@ async function cargarConfigTasador() {
   _tasadorConfig = {};
   data.forEach(r => { _tasadorConfig[r.id] = r; });
   actualizarPrecioM2();
+  precargarAjustesTasador();
+}
+
+function precargarAjustesTasador() {
+  if (!Object.keys(_tasadorConfig).length) return;
+  const get = (key, def) => _tasadorConfig[key]?.valor ?? def;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  set('tas-adj-piscina',  get('adj_piscina',  6));
+  set('tas-adj-parrilla', get('adj_parrilla', 3));
+  set('tas-adj-deck',     get('adj_deck',     1));
+  set('tas-adj-gas',      get('adj_gas',      5));
+  set('tas-adj-cloacas',  get('adj_cloacas',  5));
+  actualizarAdjEstado();
+  actualizarAdjCalidad();
+  const elLote = document.getElementById('tas-adj-lote');
+  if (elLote) elLote.value = '';
+}
+
+function actualizarAdjEstado() {
+  const estado = document.getElementById('tas-estado')?.value;
+  const map = { estrenar:'adj_estrenar', muy_bueno:'adj_muy_bueno', bueno:'adj_bueno', reciclar:'adj_reciclar' };
+  const el = document.getElementById('tas-adj-estado');
+  if (el && map[estado]) el.value = _tasadorConfig[map[estado]]?.valor ?? 0;
+}
+
+function actualizarAdjCalidad() {
+  const calidad = document.getElementById('tas-calidad')?.value;
+  const map = { premium:'adj_premium', buena:'adj_buena_cal', estandar:'adj_estandar' };
+  const el = document.getElementById('tas-adj-calidad');
+  if (el && map[calidad]) el.value = _tasadorConfig[map[calidad]]?.valor ?? 0;
+}
+
+async function cargarCoefVarela() {
+  const { data, error } = await sb.from('tasador_publico_config')
+    .select('clave, valor')
+    .in('clave', ['coef_varela_min', 'coef_varela_max']);
+  if (error || !data) return;
+  data.forEach(r => { _coefVarela[r.clave] = parseFloat(r.valor); });
 }
 
 function actualizarFormTasador() {
@@ -4111,7 +4190,7 @@ function actualizarPrecioM2() {
   const zona = document.getElementById('tas-zona')?.value || 'media';
   const key = `${tipo}_${zona}`;
   const config = _tasadorConfig[key];
-  const precio = config?.valor || '';
+  const precio = config?.valor ?? '';
 
   const zonaLabels = { mar: 'Zona mar', media: 'Zona media', bosque: 'Zona bosque' };
   const tipoLabel = tipo === 'casa' ? 'Casa' : 'Lote';
@@ -4134,8 +4213,16 @@ async function guardarPrecioM2Inline(valor) {
   notify('✓ Precio actualizado');
 }
 
+function redondear500(n, modo) {
+  const paso = 500;
+  if (modo === 'down') return Math.floor(n / paso) * paso;
+  if (modo === 'up')   return Math.ceil(n / paso) * paso;
+  return Math.round(n / paso) * paso;
+}
+
 async function calcularTasacion() {
   if (!Object.keys(_tasadorConfig).length) await cargarConfigTasador();
+  if (!Object.keys(_coefVarela).length) await cargarCoefVarela();
 
   const tipo = document.getElementById('tas-tipo')?.value;
   const zona = document.getElementById('tas-zona')?.value;
@@ -4161,7 +4248,7 @@ async function calcularTasacion() {
   // Precio base por m²
   const precioM2Input = parseFloat(document.getElementById('tas-precio-m2-input')?.value) || 0;
   const keyPrecio = `${tipo}_${zona}`;
-  const precioM2 = precioM2Input || _tasadorConfig[keyPrecio]?.valor || 0;
+  const precioM2 = precioM2Input || (_tasadorConfig[keyPrecio]?.valor ?? 0);
 
   const superficie = tipo === 'casa' ? m2Cubiertos : m2Lote;
   let valorBase = superficie * precioM2;
@@ -4169,37 +4256,47 @@ async function calcularTasacion() {
   let ajusteTotal = 0;
   let detalles = [];
 
+  // Helper: lee input de ajuste; si está vacío/NaN usa config con fallback
+  const getAdj = (id, cfgKey, def) => {
+    const v = parseFloat(document.getElementById(id)?.value);
+    return !isNaN(v) ? v : (_tasadorConfig[cfgKey]?.valor ?? def);
+  };
+
   // Ajuste por estado
   const adjEstado = { estrenar: 'adj_estrenar', muy_bueno: 'adj_muy_bueno', bueno: 'adj_bueno', reciclar: 'adj_reciclar' };
-  const pctEstado = _tasadorConfig[adjEstado[estado]]?.valor || 0;
+  const pctEstado = getAdj('tas-adj-estado', adjEstado[estado], 0);
   if (pctEstado !== 0) { ajusteTotal += pctEstado; detalles.push(`${pctEstado > 0 ? '+' : ''}${pctEstado}% estado`); }
 
   if (tipo === 'casa') {
     // Ajuste por tamaño lote
     let adjLote = 0, labelLote = '';
-    if (m2Lote >= 500) { adjLote = _tasadorConfig['adj_lote_grande']?.valor || 5; labelLote = 'lote grande'; }
-    else if (m2Lote >= 300) { adjLote = _tasadorConfig['adj_lote_medio']?.valor || 0; labelLote = 'lote medio'; }
-    else if (m2Lote > 0) { adjLote = _tasadorConfig['adj_lote_chico']?.valor || -5; labelLote = 'lote chico'; }
+    const _adjLoteRaw = (document.getElementById('tas-adj-lote')?.value ?? '').trim();
+    const _adjLoteNum = parseFloat(_adjLoteRaw);
+    if (_adjLoteRaw !== '' && !isNaN(_adjLoteNum)) {
+      adjLote = _adjLoteNum; labelLote = 'lote (manual)';
+    } else if (m2Lote >= 500) { adjLote = _tasadorConfig['adj_lote_grande']?.valor ?? 5; labelLote = 'lote grande'; }
+    else if (m2Lote >= 300)   { adjLote = _tasadorConfig['adj_lote_medio']?.valor  ?? 0; labelLote = 'lote medio'; }
+    else if (m2Lote > 0)      { adjLote = _tasadorConfig['adj_lote_chico']?.valor  ?? -5; labelLote = 'lote chico'; }
     if (adjLote !== 0) { ajusteTotal += adjLote; detalles.push(`${adjLote > 0 ? '+' : ''}${adjLote}% ${labelLote}`); }
 
     // Amenities
-    if (piscina) { const p = _tasadorConfig['adj_piscina']?.valor || 6; ajusteTotal += p; detalles.push(`+${p}% piscina`); }
-    if (parrilla) { const p = _tasadorConfig['adj_parrilla']?.valor || 3; ajusteTotal += p; detalles.push(`+${p}% parrilla/quincho`); }
-    if (deck) { const p = _tasadorConfig['adj_deck']?.valor || 1; ajusteTotal += p; detalles.push(`+${p}% deck`); }
+    if (piscina)  { const p = getAdj('tas-adj-piscina',  'adj_piscina',  6); ajusteTotal += p; detalles.push(`+${p}% piscina`); }
+    if (parrilla) { const p = getAdj('tas-adj-parrilla', 'adj_parrilla', 3); ajusteTotal += p; detalles.push(`+${p}% parrilla/quincho`); }
+    if (deck)     { const p = getAdj('tas-adj-deck',     'adj_deck',     1); ajusteTotal += p; detalles.push(`+${p}% deck`); }
 
     // Calidad
     const adjCal = { premium: 'adj_premium', buena: 'adj_buena_cal', estandar: 'adj_estandar' };
-    const pctCal = _tasadorConfig[adjCal[calidad]]?.valor || 0;
+    const pctCal = getAdj('tas-adj-calidad', adjCal[calidad], 0);
     if (pctCal !== 0) { ajusteTotal += pctCal; detalles.push(`+${pctCal}% calidad ${calidad}`); }
   }
 
   // Servicios (aplica a casa y lote)
-  if (gas) { const p = _tasadorConfig['adj_gas']?.valor || 10; ajusteTotal += p; detalles.push(`+${p}% gas natural`); }
-  if (cloacas) { const p = _tasadorConfig['adj_cloacas']?.valor || 5; ajusteTotal += p; detalles.push(`+${p}% cloacas`); }
+  if (gas)    { const p = getAdj('tas-adj-gas',    'adj_gas',    5); ajusteTotal += p; detalles.push(`+${p}% gas natural`); }
+  if (cloacas){ const p = getAdj('tas-adj-cloacas','adj_cloacas', 5); ajusteTotal += p; detalles.push(`+${p}% cloacas`); }
 
   const valorConAjustes = valorBase * (1 + ajusteTotal / 100);
   const valorTotal = valorConAjustes + valorLoteManual;
-  const rangoPct = _tasadorConfig['rango_pct']?.valor || 6;
+  const rangoPct = _tasadorConfig['rango_pct']?.valor ?? 6;
   const valorMin = Math.round(valorTotal * (1 - rangoPct / 100) / 1000) * 1000;
   const valorMax = Math.round(valorTotal * (1 + rangoPct / 100) / 1000) * 1000;
 
@@ -4207,17 +4304,38 @@ async function calcularTasacion() {
   const tipoLabel = tipo === 'casa' ? 'Casa' : 'Lote';
 
   // Guardar datos para el PDF
-  window._lastTasacion = { valorMin, valorMax, valorBase: Math.round(valorBase), valorConAjustes: Math.round(valorConAjustes), valorTotal, ajusteTotal, superficie, precioM2, valorLoteManual, rangoPct, tipo, zona, estado, calidad, detalles, ownerNombre, ownerDir, ownerTel, ownerMail };
+  const coefVarelaMin = _coefVarela['coef_varela_min'] ?? 0.83;
+  const coefVarelaMax = _coefVarela['coef_varela_max'] ?? 0.83;
+  const _ovRaw = parseFloat(document.getElementById('tas-precio-varela-manual')?.value) || 0;
+  const precioVarelaOverride = _ovRaw > 0 ? _ovRaw : null;
+  const precioVarelaMin = precioVarelaOverride !== null ? precioVarelaOverride : redondear500(valorMin * coefVarelaMin, 'down');
+  const precioVarelaMax = precioVarelaOverride !== null ? precioVarelaOverride : redondear500(valorMax * coefVarelaMax, 'up');
+
+  window._lastTasacion = { valorMin, valorMax, precioVarelaMin, precioVarelaMax, coefVarelaMin, coefVarelaMax, precioVarelaManual: precioVarelaOverride, valorBase: Math.round(valorBase), valorConAjustes: Math.round(valorConAjustes), valorTotal, ajusteTotal, superficie, precioM2, valorLoteManual, rangoPct, tipo, zona, estado, calidad, detalles, ownerNombre, ownerDir, ownerTel, ownerMail };
 
   document.getElementById('tas-placeholder-card').style.display = 'none';
   document.getElementById('tas-resultado-card').style.display = '';
   document.getElementById('tas-resultado-body').innerHTML = `
-    <div style="text-align:center;margin-bottom:20px;">
+    <div style="text-align:center;margin-bottom:16px;">
       <div style="font-size:13px;color:var(--text-3);margin-bottom:4px;">${tipoLabel} · ${zonaLabels[zona]} · ${superficie} m²</div>
+      <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Rango de publicación · para portales / cartel</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:42px;font-weight:700;color:var(--gris-dark);line-height:1;">
         USD ${valorMin.toLocaleString('es-AR')} – ${valorMax.toLocaleString('es-AR')}
       </div>
       <div style="font-size:12px;color:var(--text-3);margin-top:4px;">Rango estimado ±${rangoPct}%</div>
+    </div>
+
+    <div style="background:var(--gris-dark);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;text-align:center;">
+      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:2px;">Precio Varela</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:8px;">valor estimado de cierre</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:700;color:var(--amarillo);line-height:1;">
+        ${precioVarelaMin === precioVarelaMax
+          ? `USD ${precioVarelaMin.toLocaleString('es-AR')}`
+          : `USD ${precioVarelaMin.toLocaleString('es-AR')} – ${precioVarelaMax.toLocaleString('es-AR')}`}
+      </div>
+      ${precioVarelaOverride !== null
+        ? `<div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:4px;font-weight:600;">(manual)</div>`
+        : `<div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:4px;">coef. ${(coefVarelaMin * 100).toFixed(0)}%</div>`}
     </div>
 
     <div style="background:var(--amarillo-pale);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.6;">
@@ -4437,7 +4555,7 @@ async function imprimirAutorizacion(propiedadId) {
 function generarPDFTasacion() {
   // Leer datos directamente del DOM y del último cálculo
   if (!window._lastTasacion) { alert('Primero calculá la tasación'); return; }
-  const { valorMin, valorMax, valorBase, valorConAjustes, valorTotal, ajusteTotal, superficie, precioM2, valorLoteManual, rangoPct, tipo, zona, estado, calidad, detalles, ownerNombre, ownerDir, ownerTel, ownerMail } = window._lastTasacion;
+  const { valorMin, valorMax, precioVarelaMin, precioVarelaMax, coefVarelaMin, precioVarelaManual, valorBase, valorConAjustes, valorTotal, ajusteTotal, superficie, precioM2, valorLoteManual, rangoPct, tipo, zona, estado, calidad, detalles, ownerNombre, ownerDir, ownerTel, ownerMail } = window._lastTasacion;
   const fecha = new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
   const zonaLabels = { mar: 'Zona mar (1–3 cuadras del mar)', media: 'Zona media (4–7 cuadras)', bosque: 'Zona bosque (+7 cuadras)' };
   const estadoLabels = { estrenar: 'A estrenar', muy_bueno: 'Muy buen estado', bueno: 'Buen estado', reciclar: 'A reciclar' };
@@ -4572,23 +4690,27 @@ function generarPDFTasacion() {
   <div class="hero">
     ${ownerDir ? `<div class="hero-prop">Inmueble tasado</div><div class="hero-dir">${ownerDir}</div>` : '<div class="hero-dir">Tasación de propiedad</div>'}
     <div class="hero-tipo">${tipoLabel} · ${zonaLabels[zona]}</div>
-    <div class="hero-value-label">Valor estimado de mercado</div>
+    <div class="hero-value-label">Rango de publicación · portales y cartelería</div>
     <div class="hero-value">${fmtUSD(valorMin)} – ${fmtUSD(valorMax)}</div>
-    <div class="hero-rango">Rango estimado ±${rangoPct}% según comparables de mercado</div>
+    <div class="hero-rango">Valor de salida sugerido para portales y cartelería · rango ±${rangoPct}%</div>
   </div>
 
   <!-- Body -->
   <div class="body">
 
-    <!-- Rango destacado -->
+    <!-- Precio Varela destacado -->
     <div class="rango-box">
       <div class="rango-icon">💰</div>
       <div class="rango-content">
-        <div class="rango-label">Valor central estimado</div>
-        <div class="rango-value">${fmtUSD(valorTotal)}</div>
-        <div class="rango-sub">Precio más probable según condiciones actuales del mercado</div>
+        <div class="rango-label">Precio Varela · valor estimado de cierre</div>
+        <div class="rango-value">${precioVarelaMin === precioVarelaMax ? fmtUSD(precioVarelaMin) : `${fmtUSD(precioVarelaMin)} – ${fmtUSD(precioVarelaMax)}`}${precioVarelaManual ? ' <span style="font-size:13px;opacity:0.5;">(manual)</span>' : ''}</div>
+        <div class="rango-sub">Valor estimado de cierre según comportamiento real del mercado en la zona${precioVarelaManual ? '' : ` · coef. ${Math.round(coefVarelaMin * 100)}%`}</div>
       </div>
-      <div class="rango-pct">±${rangoPct}% rango</div>
+    </div>
+
+    <!-- Nota narrativa: explica la relación entre ambos valores -->
+    <div style="background:#FFFBEB;border:1px solid #E8D770;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:11px;color:#6B5B00;line-height:1.7;">
+      <strong>¿Cómo leer estos valores?</strong> El <em>rango de publicación</em> (${fmtUSD(valorMin)} – ${fmtUSD(valorMax)}) es el precio de salida recomendado para portales y cartelería, pensado para generar interés y margen de negociación. El <em>Precio Varela</em> (${precioVarelaMin === precioVarelaMax ? fmtUSD(precioVarelaMin) : `${fmtUSD(precioVarelaMin)} – ${fmtUSD(precioVarelaMax)}`}) refleja el valor en el que se cierran operaciones similares en la zona, según el historial de ventas de Varela Inmobiliaria.
     </div>
 
     <!-- Características y Desglose -->
