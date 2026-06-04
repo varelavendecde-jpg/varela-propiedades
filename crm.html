@@ -4316,19 +4316,13 @@ async function calcularTasacion() {
   document.getElementById('tas-placeholder-card').style.display = 'none';
   document.getElementById('tas-resultado-card').style.display = '';
   document.getElementById('tas-resultado-body').innerHTML = `
-    <div style="text-align:center;margin-bottom:16px;">
-      <div style="font-size:13px;color:var(--text-3);margin-bottom:4px;">${tipoLabel} · ${zonaLabels[zona]} · ${superficie} m²</div>
-      <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Rango de publicación · para portales / cartel</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:42px;font-weight:700;color:var(--gris-dark);line-height:1;">
-        USD ${valorMin.toLocaleString('es-AR')} – ${valorMax.toLocaleString('es-AR')}
-      </div>
-      <div style="font-size:12px;color:var(--text-3);margin-top:4px;">Rango estimado ±${rangoPct}%</div>
+    <div style="text-align:center;margin-bottom:8px;">
+      <div style="font-size:13px;color:var(--text-3);">${tipoLabel} · ${zonaLabels[zona]} · ${superficie} m²</div>
     </div>
 
-    <div style="background:var(--gris-dark);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;text-align:center;">
-      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:2px;">Precio Varela</div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:8px;">valor estimado de cierre</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:700;color:var(--amarillo);line-height:1;">
+    <div style="background:var(--gris-dark);border-radius:var(--radius);padding:18px 16px;margin-bottom:12px;text-align:center;">
+      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">Precio Varela · valor recomendado</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:42px;font-weight:700;color:var(--amarillo);line-height:1;">
         ${precioVarelaMin === precioVarelaMax
           ? `USD ${precioVarelaMin.toLocaleString('es-AR')}`
           : `USD ${precioVarelaMin.toLocaleString('es-AR')} – ${precioVarelaMax.toLocaleString('es-AR')}`}
@@ -4338,10 +4332,16 @@ async function calcularTasacion() {
         : `<div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:4px;">coef. ${(coefVarelaMin * 100).toFixed(0)}%</div>`}
     </div>
 
-    <div style="background:var(--amarillo-pale);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.6;">
-      Según propiedades similares comercializadas en Costa del Este, el valor estimado de esta propiedad se encuentra entre:<br>
-      <strong>💰 USD ${valorMin.toLocaleString('es-AR')} – ${valorMax.toLocaleString('es-AR')}</strong><br>
-      Para obtener una tasación profesional exacta, uno de nuestros asesores puede visitarte sin costo.
+    <div style="text-align:center;padding:8px 16px;margin-bottom:16px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border-2);">
+      <div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Promedio de portales · referencia</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:600;color:var(--text-2);line-height:1;">
+        USD ${valorMin.toLocaleString('es-AR')} – ${valorMax.toLocaleString('es-AR')}
+      </div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:3px;">±${rangoPct}%</div>
+    </div>
+
+    <div style="background:var(--amarillo-pale);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:12px;line-height:1.7;color:var(--text-2);">
+      <strong>¿Cómo leer estos valores?</strong> El <strong>Precio Varela</strong> (USD ${precioVarelaMin === precioVarelaMax ? precioVarelaMin.toLocaleString('es-AR') : `${precioVarelaMin.toLocaleString('es-AR')} – ${precioVarelaMax.toLocaleString('es-AR')}`}) es el valor recomendado de publicación: refleja el rango en el que efectivamente se cierran operaciones similares en la zona, según el historial de ventas de Varela Inmobiliaria. El <strong>promedio de portales</strong> (USD ${valorMin.toLocaleString('es-AR')} – ${valorMax.toLocaleString('es-AR')}) corresponde a los valores de salida que suelen publicarse en el mercado, pero tienden a alargar significativamente los tiempos de venta. Nuestra recomendación, basada en la experiencia en la zona, es publicar dentro del rango Varela para lograr una venta más ágil y a un valor real.
     </div>
 
     <div style="background:#FAFAF8;border-radius:var(--radius);padding:12px 16px;font-size:12px;color:var(--text-3);margin-bottom:12px;">
@@ -4686,31 +4686,30 @@ function generarPDFTasacion() {
     </div>
   </div>
 
-  <!-- Hero con valor principal -->
+  <!-- Hero con valor principal: Precio Varela protagonista -->
   <div class="hero">
     ${ownerDir ? `<div class="hero-prop">Inmueble tasado</div><div class="hero-dir">${ownerDir}</div>` : '<div class="hero-dir">Tasación de propiedad</div>'}
     <div class="hero-tipo">${tipoLabel} · ${zonaLabels[zona]}</div>
-    <div class="hero-value-label">Rango de publicación · portales y cartelería</div>
-    <div class="hero-value">${fmtUSD(valorMin)} – ${fmtUSD(valorMax)}</div>
-    <div class="hero-rango">Valor de salida sugerido para portales y cartelería · rango ±${rangoPct}%</div>
+    <div class="hero-value-label">Precio Varela · valor recomendado</div>
+    <div class="hero-value">${precioVarelaMin === precioVarelaMax ? fmtUSD(precioVarelaMin) : `${fmtUSD(precioVarelaMin)} – ${fmtUSD(precioVarelaMax)}`}${precioVarelaManual ? ' <span style="font-size:18px;opacity:0.5;">(manual)</span>' : ''}</div>
+    <div class="hero-rango">${precioVarelaManual ? 'Valor de publicación (manual)' : `Valor recomendado de publicación · coef. ${Math.round(coefVarelaMin * 100)}%`}</div>
   </div>
 
   <!-- Body -->
   <div class="body">
 
-    <!-- Precio Varela destacado -->
-    <div class="rango-box">
-      <div class="rango-icon">💰</div>
-      <div class="rango-content">
-        <div class="rango-label">Precio Varela · valor estimado de cierre</div>
-        <div class="rango-value">${precioVarelaMin === precioVarelaMax ? fmtUSD(precioVarelaMin) : `${fmtUSD(precioVarelaMin)} – ${fmtUSD(precioVarelaMax)}`}${precioVarelaManual ? ' <span style="font-size:13px;opacity:0.5;">(manual)</span>' : ''}</div>
-        <div class="rango-sub">Valor estimado de cierre según comportamiento real del mercado en la zona${precioVarelaManual ? '' : ` · coef. ${Math.round(coefVarelaMin * 100)}%`}</div>
+    <!-- Promedio de portales: referencia secundaria -->
+    <div style="background:#F5F4F0;border-radius:8px;padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;">
+      <div style="flex:1;">
+        <div style="font-size:10px;font-weight:600;color:#A0A3B5;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Promedio de portales · referencia</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;color:#6B6F8A;line-height:1;">${fmtUSD(valorMin)} – ${fmtUSD(valorMax)}</div>
+        <div style="font-size:11px;color:#A0A3B5;margin-top:3px;">±${rangoPct}% · valores de salida publicados en el mercado</div>
       </div>
     </div>
 
-    <!-- Nota narrativa: explica la relación entre ambos valores -->
+    <!-- Nota narrativa -->
     <div style="background:#FFFBEB;border:1px solid #E8D770;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:11px;color:#6B5B00;line-height:1.7;">
-      <strong>¿Cómo leer estos valores?</strong> El <em>rango de publicación</em> (${fmtUSD(valorMin)} – ${fmtUSD(valorMax)}) es el precio de salida recomendado para portales y cartelería, pensado para generar interés y margen de negociación. El <em>Precio Varela</em> (${precioVarelaMin === precioVarelaMax ? fmtUSD(precioVarelaMin) : `${fmtUSD(precioVarelaMin)} – ${fmtUSD(precioVarelaMax)}`}) refleja el valor en el que se cierran operaciones similares en la zona, según el historial de ventas de Varela Inmobiliaria.
+      <strong>¿Cómo leer estos valores?</strong> El <strong>Precio Varela</strong> (${precioVarelaMin === precioVarelaMax ? fmtUSD(precioVarelaMin) : `${fmtUSD(precioVarelaMin)} – ${fmtUSD(precioVarelaMax)}`}) es el valor recomendado de publicación: refleja el rango en el que efectivamente se cierran operaciones similares en la zona, según el historial de ventas de Varela Inmobiliaria. El <strong>promedio de portales</strong> (${fmtUSD(valorMin)} – ${fmtUSD(valorMax)}) corresponde a los valores de salida que suelen publicarse en el mercado, pero tienden a alargar significativamente los tiempos de venta. Nuestra recomendación, basada en la experiencia en la zona, es publicar dentro del rango Varela para lograr una venta más ágil y a un valor real.
     </div>
 
     <!-- Características y Desglose -->
