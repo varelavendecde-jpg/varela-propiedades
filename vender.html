@@ -499,8 +499,8 @@ fbq('track', 'PageView');
             <span class="radio-icon" style="margin-bottom:6px;"><svg class="ic" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
             <span class="radio-text" style="font-size:15px;">Venta Tradicional</span>
             <span style="font-size:12px;color:var(--text-3);margin-top:6px;line-height:1.5;">Publicación en portales, web y redes sociales</span>
-            <span style="font-size:14px;font-weight:700;color:var(--amarillo);margin-top:10px;">Comisión: 3%</span>
-            <span style="font-size:11px;color:var(--text-3);margin-top:2px;">Vendedor: 3% · Comprador: 3%</span>
+            <span style="font-size:14px;font-weight:700;color:var(--amarillo);margin-top:10px;">Comisión: 2%</span>
+            <span style="font-size:11px;color:var(--text-3);margin-top:2px;">Vendedor: 2% · Comprador: 4%</span>
           </label>
         </div>
         <div class="radio-option">
@@ -1000,7 +1000,7 @@ async function enviarAutorizacion() {
   modalidad = modalidad ? modalidad.value : '';
   var fecha = document.getElementById('v-fecha').value;
   var horaActual = new Date().toLocaleTimeString('es-AR');
-  var comision = modalidad === 'Radar' ? 'Vendedor 0% - Comprador abona comisión' : 'Vendedor 3% - Comprador 3%';
+  var comision = modalidad === 'Radar' ? 'Vendedor 0% - Comprador abona comisión' : 'Vendedor 2% - Comprador 4%';
 
   var propietarioId = Date.now().toString(36) + Math.random().toString(36).slice(2);
   var propId = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -1164,7 +1164,7 @@ async function enviarAutorizacion() {
 // GENERAR DOCUMENTO IMPRIMIBLE
 // ═══════════════════════════════════════
 function generarDocumento(d) {
-  var comision = d.modalidad === 'Radar' ? 'Vendedor: 0% · Comprador: abona comisión' : 'Vendedor: 3% · Comprador: 3%';
+  var comision = d.modalidad === 'Radar' ? 'Vendedor: 0% · Comprador: abona comisión' : 'Vendedor: 2% · Comprador: 4%';
   var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Autorización de Venta - ' + d.nombreCompleto + '</title>' +
   '<style>' +
     '@page{size:A4;margin:15mm 20mm;}' +

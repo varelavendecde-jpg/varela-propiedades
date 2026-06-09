@@ -333,6 +333,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
     <div class="nav-item" onclick="nav('marketing-ia',this)"><span class="nav-icon">✨</span> Marketing IA</div>
     <div class="nav-item" onclick="nav('campanias',this)"><span class="nav-icon">📣</span> Campañas</div>
     <div class="nav-item" onclick="nav(&#39;documentacion&#39;,this)"><span class="nav-icon">📄</span> Documentación</div>
+    <div class="nav-item" onclick="nav('autorizaciones',this)"><span class="nav-icon">📝</span> Autorizaciones</div>
     <div class="nav-item" onclick="nav('tasador',this)"><span class="nav-icon">🏷️</span> Tasador</div>
     <div class="nav-item" onclick="nav('equipo',this)"><span class="nav-icon">🏢</span> Equipo</div>
     <div class="nav-item" onclick="nav('vera-config',this)"><span class="nav-icon">🤖</span> Vera</div>
@@ -969,6 +970,16 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
     </div>
   </div>
 
+  <div id="sec-autorizaciones" class="hidden">
+    <div class="topbar">
+      <div><div class="topbar-title">Autorizaciones de venta</div><div class="topbar-sub" id="auts-sub"></div></div>
+      <div class="topbar-right">
+        <button class="btn btn-sm btn-primary" onclick="nuevaAutorizacionLink()">🔗 Generar link para cliente</button>
+      </div>
+    </div>
+    <div class="content"><div id="lista-autorizaciones"></div></div>
+  </div>
+
   <div id="sec-documentacion" class="hidden">
     <div class="topbar">
       <div>
@@ -1484,7 +1495,7 @@ async function limpiarContextoVera() {
 }
 
 function render(){
-  const r={dashboard:renderDash,contactos:renderContactos,propiedades:renderPropiedades,negocios:renderNegocios,tareas:renderTareas,propietarios:renderPropietarios,documentacion:()=>{},tasador:()=>{},equipo:renderEquipo,'marketing-ia':renderMarketingIA};
+  const r={dashboard:renderDash,contactos:renderContactos,propiedades:renderPropiedades,negocios:renderNegocios,tareas:renderTareas,propietarios:renderPropietarios,documentacion:()=>{},autorizaciones:renderAutorizaciones,tasador:()=>{},equipo:renderEquipo,'marketing-ia':renderMarketingIA};
   if(r[secActual])r[secActual]();
 }
 
@@ -4446,6 +4457,49 @@ function generarPDFPropiedad(id) {
   setTimeout(function(){URL.revokeObjectURL(url);}, 60000);
 }
 
+let _autsCache = [];
+
+async function renderAutorizaciones() {
+  const cont = document.getElementById('lista-autorizaciones');
+  const sub = document.getElementById('auts-sub');
+  cont.innerHTML = '<div class="card"><div class="empty">Cargando…</div></div>';
+  const { data, error } = await sb.from('autorizaciones').select('*').order('created_at', { ascending: false });
+  if (error) { cont.innerHTML = `<div class="card"><div class="empty">Error: ${error.message}</div></div>`; return; }
+  _autsCache = data || [];
+  if (sub) sub.textContent = `${_autsCache.length} autorizaciones`;
+  if (!_autsCache.length) { cont.innerHTML = '<div class="card"><div class="empty">No hay autorizaciones todavía. Generá un link para enviar a un cliente.</div></div>'; return; }
+
+  cont.innerHTML = `<div class="card">${_autsCache.map(a => {
+    const fecha = a.created_at ? new Date(a.created_at).toLocaleDateString('es-AR') : '—';
+    const firmada = !!a.firma;
+    const estadoColor = firmada ? '#16A34A' : '#CA8A04';
+    const estadoTxt = firmada ? '✓ Firmada' : '⏳ Pendiente de firma';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:14px 4px;border-bottom:1px solid var(--border);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:14px;">${_escHtml(a.nombre||'Sin nombre')}</div>
+        <div style="font-size:12px;color:var(--text-3);">${_escHtml(a.direccion||a.tipo_propiedad||'—')} · ${fecha}</div>
+      </div>
+      <span style="font-size:11px;font-weight:600;color:${estadoColor};white-space:nowrap;">${estadoTxt}</span>
+      <button class="btn btn-sm" onclick="imprimirAutorizacionPorId('${a.id}')" ${firmada?'':'disabled'} title="${firmada?'Abrir PDF':'Aún no firmada'}">📄 PDF</button>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function imprimirAutorizacionPorId(id) {
+  const a = _autsCache.find(x => x.id === id);
+  if (!a) { notify('No se encontró la autorización', true); return; }
+  _imprimirAutorizacionDesdeObjeto(a);
+}
+
+function nuevaAutorizacionLink() {
+  const url = 'https://www.varelapropiedadescde.com.ar/vender.html?autorizar=nuevo';
+  navigator.clipboard.writeText(url).then(() => {
+    notify('Link copiado. Pegalo en WhatsApp para enviarlo al cliente.');
+  }).catch(() => {
+    prompt('Copiá este link para enviar al cliente:', url);
+  });
+}
+
 async function imprimirAutorizacion(propiedadId) {
   // Buscar autorización en Supabase por propiedad_id
   try {
@@ -4464,94 +4518,97 @@ async function imprimirAutorizacion(propiedadId) {
         return;
       }
     }
-    var a = auth[0];
-    var comision = a.modalidad === 'Radar' ? 'Vendedor: 0% · Comprador: abona comisión' : 'Vendedor: 3% · Comprador: 3%';
-    var fecha = a.fecha_firma || new Date().toISOString().slice(0, 10);
-
-    var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Autorización de Venta - ' + (a.nombre || '') + '</title>' +
-    '<style>' +
-      '@page{size:A4;margin:15mm 20mm;}' +
-      '*{box-sizing:border-box;margin:0;padding:0;}' +
-      'body{font-family:Arial,sans-serif;font-size:12px;color:#333;padding:20px;max-width:210mm;}' +
-      '.hdr{display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #F5E642;margin-bottom:20px;}' +
-      '.titulo{font-size:22px;font-weight:700;color:#3D3F52;margin-bottom:6px;}' +
-      '.sub{font-size:11px;color:#888;margin-bottom:16px;}' +
-      '.seccion{margin-bottom:18px;}' +
-      '.sec-titulo{font-size:13px;font-weight:700;color:#3D3F52;border-left:3px solid #F5E642;padding-left:8px;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;}' +
-      'table{width:100%;border-collapse:collapse;margin-bottom:12px;}' +
-      'td{padding:7px 10px;border-bottom:1px solid #eee;font-size:11.5px;}' +
-      'td:first-child{color:#888;width:160px;}' +
-      'td:last-child{font-weight:600;}' +
-      '.legal{background:#FDFBE8;border:1px solid #F5E642;border-radius:6px;padding:14px;margin-bottom:14px;font-size:11px;line-height:1.7;color:#555;}' +
-      '.firma-box{display:flex;justify-content:space-between;margin-top:40px;padding-top:20px;}' +
-      '.firma-linea{width:200px;border-top:1px solid #333;padding-top:6px;text-align:center;font-size:10px;color:#888;}' +
-      '.badge{display:inline-block;background:#3B82F6;color:#fff;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;text-transform:uppercase;}' +
-      '.badge-trad{background:#F5E642;color:#3D3F52;}' +
-      '.no-print{margin:20px 0;text-align:center;}' +
-      '@media print{.no-print{display:none!important;}}' +
-    '</style></head><body>' +
-    '<div class="hdr"><div>' +
-      '<div class="titulo">AUTORIZACIÓN DE VENTA</div>' +
-      '<div style="font-size:11px;color:#888;">Varela Inmobiliaria · Martillero Público Jorge Varela · T°III F°103 N°865</div>' +
-    '</div>' +
-    '<img src="https://www.varelapropiedadescde.com.ar/logo-varela.png" style="height:50px;" onerror="this.style.display=\'none\'"></div>' +
-    '<div class="sub">Fecha: ' + fecha + ' · Modalidad: <span class="badge ' + (a.modalidad==='Radar'?'':'badge-trad') + '">' + (a.modalidad==='Radar'?'📡 Radar Inmobiliario':'🏠 Venta Tradicional') + '</span></div>' +
-
-    '<div class="seccion"><div class="sec-titulo">Datos del propietario</div><table>' +
-      '<tr><td>Nombre completo</td><td>' + (a.nombre || '') + '</td></tr>' +
-      '<tr><td>Teléfono</td><td>' + (a.tel || '') + '</td></tr>' +
-      (a.email ? '<tr><td>Email</td><td>' + a.email + '</td></tr>' : '') +
-      (a.dni ? '<tr><td>DNI</td><td>' + a.dni + '</td></tr>' : '') +
-    '</table></div>' +
-
-    '<div class="seccion"><div class="sec-titulo">Datos de la propiedad</div><table>' +
-      '<tr><td>Tipo</td><td>' + (a.tipo_propiedad || '') + '</td></tr>' +
-      '<tr><td>Dirección</td><td>' + (a.direccion || '') + '</td></tr>' +
-      (a.superficie ? '<tr><td>Superficie terreno</td><td>' + a.superficie + ' m²</td></tr>' : '') +
-      (a.superficie_cubierta ? '<tr><td>Superficie cubierta</td><td>' + a.superficie_cubierta + ' m²</td></tr>' : '') +
-      (a.ambientes ? '<tr><td>Ambientes</td><td>' + a.ambientes + '</td></tr>' : '') +
-      (a.dormitorios ? '<tr><td>Dormitorios</td><td>' + a.dormitorios + '</td></tr>' : '') +
-      (a.precio_esperado ? '<tr><td>Precio</td><td>USD ' + parseInt(a.precio_esperado).toLocaleString('es-AR') + '</td></tr>' : '') +
-      (a.antiguedad ? '<tr><td>Antigüedad</td><td>' + a.antiguedad + '</td></tr>' : '') +
-    '</table>' +
-      (a.descripcion ? '<div style="font-size:11px;color:#555;line-height:1.6;padding:8px 0;">' + a.descripcion + '</div>' : '') +
-    '</div>' +
-
-    '<div class="seccion"><div class="sec-titulo">Condiciones comerciales</div><table>' +
-      '<tr><td>Modalidad</td><td>' + (a.modalidad || '') + '</td></tr>' +
-      '<tr><td>Comisión</td><td>' + comision + '</td></tr>' +
-      '<tr><td>Cartel de venta</td><td>' + (a.autoriza_cartel ? '✅ Autorizado' : '❌ No autorizado') + '</td></tr>' +
-      '<tr><td>Vigencia</td><td>' + (a.vigencia_dias || 180) + ' días</td></tr>' +
-      '<tr><td>Exclusividad</td><td>' + (a.exclusividad ? 'Con exclusividad' : 'Sin exclusividad') + '</td></tr>' +
-    '</table></div>' +
-
-    '<div class="legal"><strong>Autorización de comercialización:</strong> Por medio del presente, autorizo a Varela Inmobiliaria — Martillero Público Jorge Varela, T°III F°103 N°865 — a comercializar la propiedad detallada, incluyendo su publicación en portales inmobiliarios, redes sociales, sitio web y grupo Radar Inmobiliario. Esta autorización incluye visitas coordinadas, tasación y toda gestión necesaria. Vigencia: ' + (a.vigencia_dias || 180) + ' días, ' + (a.exclusividad ? 'con' : 'sin') + ' exclusividad, renovable automáticamente.</div>' +
-
-    '<div class="legal" style="background:#FEF2F2;border-color:#FCA5A5;"><strong>Declaración jurada:</strong> Declaro bajo juramento que la propiedad cuenta con escritura y se encuentra apta para la venta, libre de todo embargo, inhibición, gravamen o restricción.</div>' +
-
-    '<div class="firma-box">' +
-      '<div class="firma-linea">Firma del propietario<br><strong>' + (a.firma || a.nombre || '') + '</strong></div>' +
-      '<div class="firma-linea">Fecha<br><strong>' + fecha + '</strong>' + (a.hora_firma ? '<br>' + a.hora_firma + ' hs' : '') + '</div>' +
-      '<div class="firma-linea">Varela Inmobiliaria<br>Mat. T°III F°103 N°865</div>' +
-    '</div>' +
-
-    '<div style="margin-top:30px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;padding:16px;font-size:10px;color:#64748B;line-height:1.7;">' +
-      '<strong style="color:#334155;">📌 Constancia de autorización digital</strong><br>' +
-      'El presente formulario fue completado y autorizado voluntariamente por <strong>' + (a.firma || a.nombre || '') + '</strong> (DNI: ' + (a.dni || 'No informado') + ', Tel: ' + (a.tel || '') + ') el día <strong>' + fecha + '</strong>' + (a.hora_firma ? ' a las <strong>' + a.hora_firma + ' hs</strong>' : '') + ', a través del sitio web oficial de Varela Inmobiliaria.<br><br>' +
-      'La firma digital consiste en la confirmación del nombre completo del autorizante y la aceptación expresa de los términos de la autorización de comercialización, la declaración jurada sobre el estado legal del inmueble y las condiciones comerciales, mediante formulario web.<br><br>' +
-      'Este documento tiene carácter de <strong>constancia de intención de venta</strong> y autorización de comercialización. La formalización definitiva se realizará mediante la firma del contrato correspondiente entre las partes.' +
-    '</div>' +
-
-    '<div class="no-print"><button onclick="window.print()" style="padding:12px 28px;background:#3D3F52;color:#F5E642;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Guardar PDF</button></div>' +
-    '</body></html>';
-
-    var win = window.open('', '_blank');
-    win.document.write(html);
-    win.document.close();
+    _imprimirAutorizacionDesdeObjeto(auth[0]);
   } catch (e) {
     console.error(e);
     notify('Error al buscar autorización', true);
   }
+}
+
+function _imprimirAutorizacionDesdeObjeto(a) {
+  var comision = a.modalidad === 'Radar' ? 'Vendedor: 0% · Comprador: abona comisión' : 'Vendedor: 2% · Comprador: 4%';
+  var fecha = a.fecha_firma || new Date().toISOString().slice(0, 10);
+
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Autorización de Venta - ' + (a.nombre || '') + '</title>' +
+  '<style>' +
+    '@page{size:A4;margin:15mm 20mm;}' +
+    '*{box-sizing:border-box;margin:0;padding:0;}' +
+    'body{font-family:Arial,sans-serif;font-size:12px;color:#333;padding:20px;max-width:210mm;}' +
+    '.hdr{display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #F5E642;margin-bottom:20px;}' +
+    '.titulo{font-size:22px;font-weight:700;color:#3D3F52;margin-bottom:6px;}' +
+    '.sub{font-size:11px;color:#888;margin-bottom:16px;}' +
+    '.seccion{margin-bottom:18px;}' +
+    '.sec-titulo{font-size:13px;font-weight:700;color:#3D3F52;border-left:3px solid #F5E642;padding-left:8px;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;}' +
+    'table{width:100%;border-collapse:collapse;margin-bottom:12px;}' +
+    'td{padding:7px 10px;border-bottom:1px solid #eee;font-size:11.5px;}' +
+    'td:first-child{color:#888;width:160px;}' +
+    'td:last-child{font-weight:600;}' +
+    '.legal{background:#FDFBE8;border:1px solid #F5E642;border-radius:6px;padding:14px;margin-bottom:14px;font-size:11px;line-height:1.7;color:#555;}' +
+    '.firma-box{display:flex;justify-content:space-between;margin-top:40px;padding-top:20px;}' +
+    '.firma-linea{width:200px;border-top:1px solid #333;padding-top:6px;text-align:center;font-size:10px;color:#888;}' +
+    '.badge{display:inline-block;background:#3B82F6;color:#fff;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;text-transform:uppercase;}' +
+    '.badge-trad{background:#F5E642;color:#3D3F52;}' +
+    '.no-print{margin:20px 0;text-align:center;}' +
+    '@media print{.no-print{display:none!important;}}' +
+  '</style></head><body>' +
+  '<div class="hdr"><div>' +
+    '<div class="titulo">AUTORIZACIÓN DE VENTA</div>' +
+    '<div style="font-size:11px;color:#888;">Varela Inmobiliaria · Martillero Público Jorge Varela · T°III F°103 N°865</div>' +
+  '</div>' +
+  '<img src="https://www.varelapropiedadescde.com.ar/logo-varela.png" style="height:50px;" onerror="this.style.display=\'none\'"></div>' +
+  '<div class="sub">Fecha: ' + fecha + ' · Modalidad: <span class="badge ' + (a.modalidad==='Radar'?'':'badge-trad') + '">' + (a.modalidad==='Radar'?'📡 Radar Inmobiliario':'🏠 Venta Tradicional') + '</span></div>' +
+
+  '<div class="seccion"><div class="sec-titulo">Datos del propietario</div><table>' +
+    '<tr><td>Nombre completo</td><td>' + (a.nombre || '') + '</td></tr>' +
+    '<tr><td>Teléfono</td><td>' + (a.tel || '') + '</td></tr>' +
+    (a.email ? '<tr><td>Email</td><td>' + a.email + '</td></tr>' : '') +
+    (a.dni ? '<tr><td>DNI</td><td>' + a.dni + '</td></tr>' : '') +
+  '</table></div>' +
+
+  '<div class="seccion"><div class="sec-titulo">Datos de la propiedad</div><table>' +
+    '<tr><td>Tipo</td><td>' + (a.tipo_propiedad || '') + '</td></tr>' +
+    '<tr><td>Dirección</td><td>' + (a.direccion || '') + '</td></tr>' +
+    (a.superficie ? '<tr><td>Superficie terreno</td><td>' + a.superficie + ' m²</td></tr>' : '') +
+    (a.superficie_cubierta ? '<tr><td>Superficie cubierta</td><td>' + a.superficie_cubierta + ' m²</td></tr>' : '') +
+    (a.ambientes ? '<tr><td>Ambientes</td><td>' + a.ambientes + '</td></tr>' : '') +
+    (a.dormitorios ? '<tr><td>Dormitorios</td><td>' + a.dormitorios + '</td></tr>' : '') +
+    (a.precio_esperado ? '<tr><td>Precio</td><td>USD ' + parseInt(a.precio_esperado).toLocaleString('es-AR') + '</td></tr>' : '') +
+    (a.antiguedad ? '<tr><td>Antigüedad</td><td>' + a.antiguedad + '</td></tr>' : '') +
+  '</table>' +
+    (a.descripcion ? '<div style="font-size:11px;color:#555;line-height:1.6;padding:8px 0;">' + a.descripcion + '</div>' : '') +
+  '</div>' +
+
+  '<div class="seccion"><div class="sec-titulo">Condiciones comerciales</div><table>' +
+    '<tr><td>Modalidad</td><td>' + (a.modalidad || '') + '</td></tr>' +
+    '<tr><td>Comisión</td><td>' + comision + '</td></tr>' +
+    '<tr><td>Cartel de venta</td><td>' + (a.autoriza_cartel ? '✅ Autorizado' : '❌ No autorizado') + '</td></tr>' +
+    '<tr><td>Vigencia</td><td>' + (a.vigencia_dias || 180) + ' días</td></tr>' +
+    '<tr><td>Exclusividad</td><td>' + (a.exclusividad ? 'Con exclusividad' : 'Sin exclusividad') + '</td></tr>' +
+  '</table></div>' +
+
+  '<div class="legal"><strong>Autorización de comercialización:</strong> Por medio del presente, autorizo a Varela Inmobiliaria — Martillero Público Jorge Varela, T°III F°103 N°865 — a comercializar la propiedad detallada, incluyendo su publicación en portales inmobiliarios, redes sociales, sitio web y grupo Radar Inmobiliario. Esta autorización incluye visitas coordinadas, tasación y toda gestión necesaria. Vigencia: ' + (a.vigencia_dias || 180) + ' días, ' + (a.exclusividad ? 'con' : 'sin') + ' exclusividad, renovable automáticamente.</div>' +
+
+  '<div class="legal" style="background:#FEF2F2;border-color:#FCA5A5;"><strong>Declaración jurada:</strong> Declaro bajo juramento que la propiedad cuenta con escritura y se encuentra apta para la venta, libre de todo embargo, inhibición, gravamen o restricción.</div>' +
+
+  '<div class="firma-box">' +
+    '<div class="firma-linea">Firma del propietario<br><strong>' + (a.firma || a.nombre || '') + '</strong></div>' +
+    '<div class="firma-linea">Fecha<br><strong>' + fecha + '</strong>' + (a.hora_firma ? '<br>' + a.hora_firma + ' hs' : '') + '</div>' +
+    '<div class="firma-linea">Varela Inmobiliaria<br>Mat. T°III F°103 N°865</div>' +
+  '</div>' +
+
+  '<div style="margin-top:30px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;padding:16px;font-size:10px;color:#64748B;line-height:1.7;">' +
+    '<strong style="color:#334155;">📌 Constancia de autorización digital</strong><br>' +
+    'El presente formulario fue completado y autorizado voluntariamente por <strong>' + (a.firma || a.nombre || '') + '</strong> (DNI: ' + (a.dni || 'No informado') + ', Tel: ' + (a.tel || '') + ') el día <strong>' + fecha + '</strong>' + (a.hora_firma ? ' a las <strong>' + a.hora_firma + ' hs</strong>' : '') + ', a través del sitio web oficial de Varela Inmobiliaria.<br><br>' +
+    'La firma digital consiste en la confirmación del nombre completo del autorizante y la aceptación expresa de los términos de la autorización de comercialización, la declaración jurada sobre el estado legal del inmueble y las condiciones comerciales, mediante formulario web.<br><br>' +
+    'Este documento tiene carácter de <strong>constancia de intención de venta</strong> y autorización de comercialización. La formalización definitiva se realizará mediante la firma del contrato correspondiente entre las partes.' +
+  '</div>' +
+
+  '<div class="no-print"><button onclick="window.print()" style="padding:12px 28px;background:#3D3F52;color:#F5E642;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Guardar PDF</button></div>' +
+  '</body></html>';
+
+  var win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
 }
 
 function generarPDFTasacion() {
