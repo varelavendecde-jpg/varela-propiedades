@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+
+  <!-- Fondo amarillo, esquinas redondeadas r=80, sin borde -->
+  <rect width="512" height="512" rx="80" ry="80" fill="#F5E642"/>
+
+  <!-- VARELA — bloque centrado, mitad superior del bloque -->
+  <!-- Bloque total ~137px de alto, centrado en y=256 -->
+  <!-- VARELA center: y=225, CRM center: y=300, gap ~10px -->
+  <!-- stroke mismo color que fill + paint-order simula extra-bold sin fuente 900 -->
+  <text
+    x="256" y="225"
+    font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+    font-size="105"
+    font-weight="700"
+    letter-spacing="1"
+    text-anchor="middle"
+    dominant-baseline="central"
+    fill="#757575"
+    stroke="#757575"
+    stroke-width="3"
+    paint-order="stroke fill">VARELA</text>
+
+  <text
+    x="256" y="300"
+    font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+    font-size="68"
+    font-weight="700"
+    letter-spacing="1"
+    text-anchor="middle"
+    dominant-baseline="central"
+    fill="#757575">CRM</text>
+
+</svg>

@@ -1,1 +1,4 @@
 ﻿supabase/.temp/
+*.bak-*
+crm.html.bak-*
+*.bak_*
