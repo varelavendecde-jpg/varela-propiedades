@@ -6068,14 +6068,31 @@ document.addEventListener('click', (e) => {
     document.querySelectorAll('#mimg-formato .mimg-opt').forEach(x => x.classList.remove('active'));
     opcFormato.classList.add('active');
     _mimg.formato = opcFormato.dataset.formato;
+    if (_mimg.formato === 'historia' && _mimg.fotoIdxs.length === 0) {
+      _mimg.fotoIdxs = [_mimg.fotoIdx, _mimg.fotoIdx + 1].filter(i => i < ((_mia.propiedad||{}).fotos||[]).length);
+    }
+    _mimgRenderFotosThumbs();
     _mimgRefrescar();
     return;
   }
   const thumb = e.target.closest('#mimg-fotos .mimg-foto');
   if (thumb) {
-    document.querySelectorAll('#mimg-fotos .mimg-foto').forEach(x => x.classList.remove('active'));
-    thumb.classList.add('active');
-    _mimg.fotoIdx = parseInt(thumb.dataset.idx, 10);
+    const idx = parseInt(thumb.dataset.idx, 10);
+    if (_mimg.formato === 'historia') {
+      const arr = _mimg.fotoIdxs;
+      const pos = arr.indexOf(idx);
+      if (pos !== -1) {
+        arr.splice(pos, 1);
+      } else if (arr.length >= 2) {
+        _mimg.fotoIdxs = [idx];
+      } else {
+        arr.push(idx);
+      }
+      _mimg.fotoIdx = _mimg.fotoIdxs[0] !== undefined ? _mimg.fotoIdxs[0] : 0;
+    } else {
+      _mimg.fotoIdx = idx;
+    }
+    _mimgRenderFotosThumbs();
     _mimgRefrescar();
     return;
   }
@@ -6478,6 +6495,8 @@ const _mimg = {
   fotoIdx: 0,
   fotoDataURL: null,    // cache de la foto convertida a base64
   fotoURLcache: '',     // URL que corresponde al dataURL cacheado
+  fotosDataURLs: [],    // cache multi-foto para Historia
+  fotoIdxs: [],         // índices seleccionados para Historia (hasta 2, en orden)
   logoDataURL: null,    // base64 del logo varela (una sola vez)
 };
 
@@ -6546,11 +6565,20 @@ function _mimgRenderFotosThumbs() {
     cont.innerHTML = '<div style="font-size:11.5px;color:var(--text-3);padding:10px;">Esta propiedad no tiene fotos cargadas. Subí al menos una foto en la ficha.</div>';
     return;
   }
-  cont.innerHTML = fotos.map((url, i) =>
-    `<div class="mimg-foto ${i === _mimg.fotoIdx ? 'active' : ''}" data-idx="${i}">
-      <img src="${url}" alt="Foto ${i+1}" loading="lazy">
-    </div>`
-  ).join('');
+  const esHist = _mimg.formato === 'historia';
+  cont.innerHTML = fotos.map((url, i) => {
+    let activeClass = '', badge = '';
+    if (esHist) {
+      const pos = _mimg.fotoIdxs.indexOf(i);
+      if (pos !== -1) {
+        activeClass = 'active';
+        badge = `<span style="position:absolute;top:2px;left:2px;background:var(--amarillo-dark);color:#1a1a1a;font-size:11px;font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:2;">${pos + 1}</span>`;
+      }
+    } else {
+      if (i === _mimg.fotoIdx) activeClass = 'active';
+    }
+    return `<div class="mimg-foto ${activeClass}" data-idx="${i}" style="position:relative;">${badge}<img src="${url}" alt="Foto ${i+1}" loading="lazy"></div>`;
+  }).join('');
 }
 
 // URL del proxy para imágenes (Edge Function img-proxy)
@@ -6619,19 +6647,29 @@ async function _mimgAsegurarAssets() {
       _mimg.fotoDataURL = await _mimgFetchImagenComoDataURL(fotoURL);
       _mimg.fotoURLcache = fotoURL;
     } catch (e) {
-      console.warn('No se pudo cargar foto:', e);
       _mimg.fotoDataURL = null;
       _mimg.fotoURLcache = '';
       _mimg.ultimoErrorFoto = e.message || String(e);
     }
   }
-  if (!_mimg.logoDataURL) {
-    try {
-      _mimg.logoDataURL = await _mimgFetchImagenComoDataURL(LOGO_URL);
-    } catch (e) {
-      console.warn('No se pudo cargar logo:', e);
-      _mimg.logoDataURL = ''; // fallback silencioso (seguirá sin logo)
+
+  // Multi-foto para Historia: seleccionada + la siguiente (si existe)
+  if (_mimg.formato === 'historia') {
+    const idxs = (_mimg.fotoIdxs && _mimg.fotoIdxs.length ? _mimg.fotoIdxs : [_mimg.fotoIdx]).filter(i => i < fotos.length);
+    const urls = idxs.map(i => fotos[i]);
+    const dataURLs = [];
+    for (const u of urls) {
+      try { dataURLs.push(await _mimgFetchImagenComoDataURL(u)); }
+      catch (e) { /* si falla una, la omitimos */ }
     }
+    _mimg.fotosDataURLs = dataURLs.length ? dataURLs : (_mimg.fotoDataURL ? [_mimg.fotoDataURL] : []);
+  } else {
+    _mimg.fotosDataURLs = _mimg.fotoDataURL ? [_mimg.fotoDataURL] : [];
+  }
+
+  if (!_mimg.logoDataURL) {
+    try { _mimg.logoDataURL = await _mimgFetchImagenComoDataURL(LOGO_URL); }
+    catch (e) { _mimg.logoDataURL = ''; }
   }
 }
 
@@ -6677,11 +6715,12 @@ function _mimgBuildSVG() {
   const precio = _mimgEsc(_mimgPrecio());
   const datos = _mimgEsc(_mimgDatosCortos());
   const foto = _mimg.fotoDataURL || '';
+  const fotos = _mimg.fotosDataURLs || [];
   const logo = _mimg.logoDataURL || '';
 
-  if (_mimg.diseno === 'A') return _mimgSVG_A(W, H, { etiqueta, ubic, precio, datos, foto, logo });
-  if (_mimg.diseno === 'B') return _mimgSVG_B(W, H, { etiqueta, ubic, precio, datos, foto, logo });
-  if (_mimg.diseno === 'C') return _mimgSVG_C(W, H, { etiqueta, ubic, precio, datos, foto, logo });
+  if (_mimg.diseno === 'A') return _mimgSVG_A(W, H, { etiqueta, ubic, precio, datos, foto, fotos, logo });
+  if (_mimg.diseno === 'B') return _mimgSVG_B(W, H, { etiqueta, ubic, precio, datos, foto, fotos, logo });
+  if (_mimg.diseno === 'C') return _mimgSVG_C(W, H, { etiqueta, ubic, precio, datos, foto, fotos, logo });
 }
 
 // ───── Diseño A: Classic (fondo amarillo, ficha oscura abajo) ─────
@@ -6711,9 +6750,17 @@ function _mimgSVG_A(W, H, d) {
   const datosY = lineY + datosFS + (esHist ? 22 : 16);
   const handleY = H - (esHist ? 60 : 44);
 
-  const fotoSVG = d.foto
-    ? `<image x="${mX}" y="${fotoY}" width="${fotoW}" height="${fotoH}" href="${d.foto}" preserveAspectRatio="xMidYMid slice"/>`
-    : `<rect x="${mX}" y="${fotoY}" width="${fotoW}" height="${fotoH}" fill="#8A8790"/>`;
+  // Multi-foto Historia: 2 fotos apiladas con gap 8px
+  const usarMulti = esHist && d.fotos && d.fotos.length >= 2;
+  const mitadH = Math.round((fotoH - 8) / 2);
+  const clipDefs = usarMulti
+    ? `<clipPath id="fclipA0"><rect x="${mX}" y="${fotoY}" width="${fotoW}" height="${mitadH}" rx="6"/></clipPath>
+       <clipPath id="fclipA1"><rect x="${mX}" y="${fotoY + mitadH + 8}" width="${fotoW}" height="${mitadH}" rx="6"/></clipPath>`
+    : `<clipPath id="fclipA"><rect x="${mX}" y="${fotoY}" width="${fotoW}" height="${fotoH}" rx="6"/></clipPath>`;
+  const fotosBlock = usarMulti
+    ? `<g clip-path="url(#fclipA0)"><image x="${mX}" y="${fotoY}" width="${fotoW}" height="${mitadH}" href="${d.fotos[0]}" preserveAspectRatio="xMidYMid slice"/></g>
+       <g clip-path="url(#fclipA1)"><image x="${mX}" y="${fotoY + mitadH + 8}" width="${fotoW}" height="${mitadH}" href="${d.fotos[1]}" preserveAspectRatio="xMidYMid slice"/></g>`
+    : `<g clip-path="url(#fclipA)">${d.foto ? `<image x="${mX}" y="${fotoY}" width="${fotoW}" height="${fotoH}" href="${d.foto}" preserveAspectRatio="xMidYMid slice"/>` : `<rect x="${mX}" y="${fotoY}" width="${fotoW}" height="${fotoH}" fill="#8A8790"/>`}</g>`;
 
   const logoSVG = d.logo
     ? `<image x="${mX}" y="${topPad}" width="210" height="58" href="${d.logo}" preserveAspectRatio="xMinYMid meet"/>`
@@ -6722,11 +6769,11 @@ function _mimgSVG_A(W, H, d) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
     <defs>
       <style>${FONT_FACE_CSS}</style>
-      <clipPath id="fclipA"><rect x="${mX}" y="${fotoY}" width="${fotoW}" height="${fotoH}" rx="6"/></clipPath>
+      ${clipDefs}
     </defs>
     <rect width="${W}" height="${H}" fill="#F7F5E8"/>
     ${logoSVG}
-    <g clip-path="url(#fclipA)">${fotoSVG}</g>
+    ${fotosBlock}
     <text x="${mX}" y="${etiY}" font-family="VInter,sans-serif" font-size="${etiFS}" fill="#B59A00" letter-spacing="6" font-weight="600">${(d.etiqueta||'').toUpperCase()}</text>
     <text x="${mX}" y="${precioY}" font-family="VFraunces,serif" font-size="${precioFS}" font-weight="600" fill="#4E4C52" letter-spacing="-1">${d.precio}</text>
     <text x="${mX}" y="${ubicY}" font-family="VInter,sans-serif" font-size="${ubicFS}" fill="#4E4C52" fill-opacity="0.8" font-weight="400">${d.ubic}</text>
@@ -6757,9 +6804,23 @@ function _mimgSVG_B(W, H, d) {
   const lineY = precioY + (esHist ? 44 : 38);
   const datosY = lineY + (esHist ? 46 : 40);
 
-  const fotoSVG = d.foto
-    ? `<image x="0" y="0" width="${W}" height="${H}" href="${d.foto}" preserveAspectRatio="xMidYMid slice"/>`
-    : `<rect width="${W}" height="${H}" fill="#8A8790"/>`;
+  // Multi-foto Historia: fotos 40% + 32%, franja charcoal 28% para textos
+  const usarMulti = esHist && d.fotos && d.fotos.length >= 2;
+  const foto1H   = Math.round(H * 0.40);
+  const foto2Y   = foto1H + 6;
+  const foto2H   = Math.round(H * 0.72) - foto2Y;
+  const charcoalY = foto2Y + foto2H;
+  const etiYm    = charcoalY + 58;
+  const ubicYm   = etiYm + ubicFS + 20;
+  const precioYm = ubicYm + precioFS + 16;
+  const lineYm   = precioYm + 44;
+  const datosYm  = lineYm + 46;
+  const fotoSVG = usarMulti
+    ? `<image x="0" y="0" width="${W}" height="${foto1H}" href="${d.fotos[0]}" preserveAspectRatio="xMidYMid slice"/>
+       <image x="0" y="${foto2Y}" width="${W}" height="${foto2H}" href="${d.fotos[1]}" preserveAspectRatio="xMidYMid slice"/>`
+    : d.foto
+      ? `<image x="0" y="0" width="${W}" height="${H}" href="${d.foto}" preserveAspectRatio="xMidYMid slice"/>`
+      : `<rect width="${W}" height="${H}" fill="#8A8790"/>`;
 
   const logoBlock = d.logo
     ? `<image x="${mX}" y="${esHist ? 90 : 64}" width="200" height="56" href="${d.logo}" preserveAspectRatio="xMinYMid meet"/>`
@@ -6773,15 +6834,19 @@ function _mimgSVG_B(W, H, d) {
         <stop offset="0.72" stop-color="#000" stop-opacity="0.45"/>
         <stop offset="1" stop-color="#000" stop-opacity="0.92"/>
       </linearGradient>
+      ${usarMulti ? `<linearGradient id="gBtop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0.35"/><stop offset="0.30" stop-color="#000" stop-opacity="0"/></linearGradient>` : ''}
     </defs>
     ${fotoSVG}
-    <rect width="${W}" height="${H}" fill="url(#gB)"/>
+    ${usarMulti
+      ? `<rect width="${W}" height="${foto1H}" fill="url(#gBtop)"/>
+         <rect x="0" y="${charcoalY}" width="${W}" height="${H - charcoalY}" fill="#2B2B2E"/>`
+      : `<rect width="${W}" height="${H}" fill="url(#gB)"/>`}
     ${logoBlock}
-    <text x="${mX}" y="${etiY}" font-family="VInter,sans-serif" font-size="${etiFS}" fill="#FFF391" letter-spacing="6" font-weight="600">${(d.etiqueta||'').toUpperCase()}</text>
-    <text x="${mX}" y="${ubicY}" font-family="VInter,sans-serif" font-size="${ubicFS}" fill="#fff" fill-opacity="0.92" font-weight="400" letter-spacing="0.5">${d.ubic}</text>
-    <text x="${mX}" y="${precioY}" font-family="VFraunces,serif" font-size="${precioFS}" font-weight="600" fill="#fff" letter-spacing="-1">${d.precio}</text>
-    <line x1="${mX}" y1="${lineY}" x2="${mX + (esHist ? 80 : 64)}" y2="${lineY}" stroke="#FFF391" stroke-width="4"/>
-    <text x="${mX}" y="${datosY}" font-family="VInter,sans-serif" font-size="${datosFS}" fill="#fff" fill-opacity="0.88" font-weight="400" letter-spacing="0.5">${d.datos}</text>
+    <text x="${mX}" y="${usarMulti ? etiYm : etiY}" font-family="VInter,sans-serif" font-size="${etiFS}" fill="#FFF391" letter-spacing="6" font-weight="600">${(d.etiqueta||'').toUpperCase()}</text>
+    <text x="${mX}" y="${usarMulti ? ubicYm : ubicY}" font-family="VInter,sans-serif" font-size="${ubicFS}" fill="#fff" fill-opacity="0.92" font-weight="400" letter-spacing="0.5">${d.ubic}</text>
+    <text x="${mX}" y="${usarMulti ? precioYm : precioY}" font-family="VFraunces,serif" font-size="${precioFS}" font-weight="600" fill="#fff" letter-spacing="-1">${d.precio}</text>
+    <line x1="${mX}" y1="${usarMulti ? lineYm : lineY}" x2="${mX + (esHist ? 80 : 64)}" y2="${usarMulti ? lineYm : lineY}" stroke="#FFF391" stroke-width="4"/>
+    <text x="${mX}" y="${usarMulti ? datosYm : datosY}" font-family="VInter,sans-serif" font-size="${datosFS}" fill="#fff" fill-opacity="0.88" font-weight="400" letter-spacing="0.5">${d.datos}</text>
   </svg>`;
 }
 
@@ -6824,9 +6889,15 @@ function _mimgSVG_C(W, H, d) {
     </g>`;
   }).join('');
 
-  const fotoSVG = d.foto
-    ? `<image x="0" y="0" width="${W}" height="${fotoH}" href="${d.foto}" preserveAspectRatio="xMidYMid slice"/>`
-    : `<rect x="0" y="0" width="${W}" height="${fotoH}" fill="#8A8790"/>`;
+  // Multi-foto Historia: 2 fotos apiladas con gap 8px (fondo crema cubre el hueco)
+  const usarMulti = esHist && d.fotos && d.fotos.length >= 2;
+  const mitadH = Math.round((fotoH - 8) / 2);
+  const fotoSVG = usarMulti
+    ? `<image x="0" y="0" width="${W}" height="${mitadH}" href="${d.fotos[0]}" preserveAspectRatio="xMidYMid slice"/>
+       <image x="0" y="${mitadH + 8}" width="${W}" height="${mitadH}" href="${d.fotos[1]}" preserveAspectRatio="xMidYMid slice"/>`
+    : d.foto
+      ? `<image x="0" y="0" width="${W}" height="${fotoH}" href="${d.foto}" preserveAspectRatio="xMidYMid slice"/>`
+      : `<rect x="0" y="0" width="${W}" height="${fotoH}" fill="#8A8790"/>`;
 
   const logoSVG = d.logo
     ? `<image x="${W - mX - 200}" y="${H - (esHist ? 80 : 60)}" width="200" height="50" href="${d.logo}" preserveAspectRatio="xMaxYMid meet"/>`
