@@ -2007,9 +2007,23 @@ function abrirModal(tipo,datos=null){
   if(tipo==='contacto'){
     const esLidFantasma = isEdit && datos && datos.lid_no_resuelto === true;
     const bloqueLid = esLidFantasma ? `
-    <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:var(--radius);padding:12px;margin-bottom:14px;">
+    <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:12px;margin-bottom:16px;">
       <div style="font-weight:600;color:#78350F;margin-bottom:6px;">⚠️ LID no resuelto</div>
-      <div style="font-size:12px;color:#92400E;margin-bottom:10px;">Este contacto fue creado con un LID temporal de WhatsApp (${v('tel')}). Si conocés el tel real (formato 549...), ingresalo abajo y se vinculará todo el historial.</div>
+      <div style="font-size:12px;color:#92400E;margin-bottom:10px;">
+        Contacto creado con un LID temporal de WhatsApp (${v('tel')}). Elegí una opción:
+      </div>
+
+      <div style="font-size:11px;font-weight:600;color:#78350F;margin-bottom:4px;">1 · Vincular a un contacto que ya tenés</div>
+      <div style="position:relative;margin-bottom:12px;">
+        <input class="form-input" id="flidbuscar" placeholder="Buscar por nombre o tel…" autocomplete="off"
+          oninput="buscarContactoParaVincular(this.value,'${v('id')}','${v('tel')}')" style="font-size:13px;">
+        <div id="flidresults" class="hidden" style="position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:6px;margin-top:2px;max-height:200px;overflow:auto;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,.12);"></div>
+      </div>
+
+      <div style="font-size:11px;font-weight:600;color:#78350F;margin-bottom:4px;">2 · El número ya es correcto</div>
+      <button class="btn btn-sm" style="margin-bottom:12px;" onclick="limpiarMarcaLid('${v('id')}')">✓ Solo quitar la marca de LID</button>
+
+      <div style="font-size:11px;font-weight:600;color:#78350F;margin-bottom:4px;">3 · Ingresar el tel real a mano</div>
       <div style="display:flex;gap:6px;align-items:center;">
         <input class="form-input" id="ftelreal" placeholder="Ej: 5492257546284" style="flex:1;font-size:13px;">
         <button class="btn btn-primary btn-sm" onclick="marcarTelReal('${v('id')}','${v('tel')}','${(v('nombre')||'').replace(/'/g,"\\'")}')">✓ Marcar tel real</button>
@@ -5323,6 +5337,54 @@ function enviarWAProp() {
 // ══════════════════════════════════════════════════════════════
 // CAMPAÑAS WhatsApp
 // ══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════
+// LIMPIAR MARCA LID — quita lid_no_resuelto sin cambiar el tel
+// ══════════════════════════════════════════════════════════════
+async function limpiarMarcaLid(contactoId) {
+  if (!confirm('Quitar la marca de LID no resuelto de este contacto? (no cambia el teléfono)')) return;
+  try {
+    const c = cache.contactos.find(x => x.id === contactoId);
+    const notasLimpias = (c?.notas || '').replace(/⚠️ LID no resuelto.*?($|\.|·)/, '').trim();
+    const { error } = await sb.from('contactos').update({ lid_no_resuelto: false, notas: notasLimpias }).eq('id', contactoId);
+    if (error) throw error;
+    notify('✓ Marca de LID quitada.');
+    cerrarModal(); await fetchAll(); render();
+  } catch (e) { alert('Error: ' + (e.message || e)); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// BUSCADOR PARA VINCULAR LID A CONTACTO EXISTENTE
+// ══════════════════════════════════════════════════════════════
+let _lidVincularCtx = null;
+function buscarContactoParaVincular(query, lidContactoId, lidTel) {
+  _lidVincularCtx = { lidContactoId, lidTel };
+  const results = document.getElementById('flidresults');
+  query = (query || '').toLowerCase().trim();
+  if (query.length < 2) { results.classList.add('hidden'); return; }
+  const esTelLid = (t) => /^\d{14,}$/.test(t || '') && !(t || '').startsWith('549');
+  const enc = (cache.contactos || []).filter(c =>
+    c.id !== lidContactoId && !c.lid_no_resuelto && !esTelLid(c.tel) &&
+    /^549\d{9,11}$/.test(c.tel || '') &&
+    ((c.nombre || '').toLowerCase().includes(query) || (c.tel || '').includes(query))
+  ).slice(0, 8);
+  if (!enc.length) { results.innerHTML = '<div style="padding:8px;font-size:12px;color:var(--text-3);">Sin resultados</div>'; results.classList.remove('hidden'); return; }
+  results.innerHTML = enc.map(c => `<div onclick="vincularLidAContacto('${c.tel}','${(c.nombre||'').replace(/'/g,"\\'")}')" style="padding:8px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;"><b>${c.nombre||'Sin nombre'}</b> <span style="color:var(--text-3);">· ${c.tel} · ${c.tipo||''}</span></div>`).join('');
+  results.classList.remove('hidden');
+}
+
+async function vincularLidAContacto(telReal, nombreReal) {
+  if (!_lidVincularCtx) return;
+  const { lidContactoId, lidTel } = _lidVincularCtx;
+  if (!confirm(`Vincular este LID al contacto "${nombreReal}" (${telReal})?\n\nSe va a:\n- Guardar el alias LID → ${telReal}\n- Migrar los mensajes\n- Borrar el contacto LID duplicado`)) return;
+  try {
+    await sb.from('mensajes_wa').update({ contacto_tel: telReal }).eq('contacto_tel', lidTel);
+    await sb.from('lid_aliases').upsert({ lid: lidTel, tel_real: telReal, pushname: nombreReal || null, actualizado: new Date().toISOString() }, { onConflict: 'lid' });
+    await sb.from('contactos').delete().eq('id', lidContactoId);
+    notify('✓ Vinculado. El bot ya conoce el alias.');
+    cerrarModal(); await fetchAll(); render();
+  } catch (e) { alert('Error: ' + (e.message || e)); }
+}
 
 // ══════════════════════════════════════════════════════════════
 // MARCAR TEL REAL — resuelve un contacto con lid_no_resuelto=true
