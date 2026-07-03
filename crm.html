@@ -987,6 +987,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
         <div class="topbar-sub">Generador de documentos legales</div>
       </div>
       <div class="topbar-right">
+        <button class="btn" onclick="generarLinkFirma()" style="background:#E0F2FE;border-color:#7DD3FC;color:#0369A1;">🔗 Link para firma</button>
         <button class="btn btn-primary" id="btn-imprimir-doc" onclick="imprimirDocActual()">🖨️ Imprimir / Descargar PDF</button>
       </div>
     </div>
@@ -1061,6 +1062,35 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
         </div>
 
       </div>
+
+      <!-- Cláusulas editables -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+        <div class="card">
+          <div class="card-header"><span class="card-title">📜 Honorarios y Gastos</span></div>
+          <div style="padding:12px;">
+            <textarea class="form-input" id="res-clausula-honorarios" rows="3" style="resize:vertical;width:100%;">Los gastos de escrituración incluido el EP son a cargo del comprador, previa aceptación del presupuesto.</textarea>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">📋 Condiciones de la Reserva</span></div>
+          <div style="padding:12px;">
+            <textarea class="form-input" id="res-clausula-reserva" rows="4" style="resize:vertical;width:100%;">En caso de que el VENDEDOR no acepte la operación en las condiciones aquí establecidas, la suma entregada será reintegrada íntegramente al COMPRADOR, sin cargo alguno.
+En caso de desistimiento por parte del COMPRADOR, la suma entregada quedará a favor de la INMOBILIARIA interviniente, en concepto de gastos, gestión y honorarios, sin derecho a reclamo alguno.</textarea>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">🏠 Entrega y Estado del Inmueble</span></div>
+          <div style="padding:12px;">
+            <textarea class="form-input" id="res-clausula-entrega" rows="3" style="resize:vertical;width:100%;">El inmueble será entregado libre de deudas, impuestos, tasas, servicios y gravámenes, al día de la posesión, en el estado en que fue visitado y aceptado por el COMPRADOR.</textarea>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">⚖️ Jurisdicción</span></div>
+          <div style="padding:12px;">
+            <textarea class="form-input" id="res-clausula-jurisdiccion" rows="3" style="resize:vertical;width:100%;">Para cualquier cuestión judicial derivada del presente, las partes se someten a la jurisdicción de los Tribunales Ordinarios de Dolores, renunciando a cualquier otro fuero o jurisdicción.</textarea>
+          </div>
+        </div>
+      </div>
     </div>
     </div>
 
@@ -1123,6 +1153,22 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
             </div>
           </div>
 
+        </div>
+
+        <!-- Cláusulas editables -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+          <div class="card">
+            <div class="card-header"><span class="card-title">📜 Gastos de escritura</span></div>
+            <div style="padding:12px;">
+              <textarea class="form-input" id="ac-clausula-gastos" rows="2" style="resize:vertical;width:100%;">La escritura y honorarios del Escribano quedarán a cargo de la parte COMPRADORA, incluyendo sellados, honorarios y estado parcelario.</textarea>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">💼 Honorarios del Martillero</span></div>
+            <div style="padding:12px;">
+              <textarea class="form-input" id="ac-clausula-honorarios" rows="2" style="resize:vertical;width:100%;">Interviene en esta venta el Martillero y Corredor Público JORGE OSCAR VARELA, con Matrícula T°III F°103 N°865 de la Prov. de Buenos Aires siendo sus honorarios pactados en su totalidad con el COMPRADOR.</textarea>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -4982,6 +5028,80 @@ function imprimirDocActual() {
   else if (_docActual === 'aceptacion') imprimirAceptacion();
 }
 
+async function generarLinkFirma() {
+  var g = function(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  var tipo = _docActual; // 'reserva' o 'aceptacion'
+  var datos = {};
+  var titulo = '';
+
+  if (tipo === 'reserva') {
+    // Validar campos mínimos
+    if (!g('res-comprador-nombre') || !g('res-sena-num')) {
+      alert('Completá al menos el nombre del comprador y el monto de la seña');
+      return;
+    }
+    datos = {
+      ciudad: g('res-ciudad'), fecha: g('res-fecha'),
+      comprador_nombre: g('res-comprador-nombre'), comprador_dni: g('res-comprador-dni'),
+      comprador_dom: g('res-comprador-dom'), comprador_tel: g('res-comprador-tel'),
+      inmueble_dir: g('res-inmueble-dir'), inmueble_desc: g('res-inmueble-desc'), catastral: g('res-catastral'),
+      sena_num: g('res-sena-num'), sena_letras: g('res-sena-letras'),
+      precio_num: g('res-precio-num'), precio_letras: g('res-precio-letras'),
+      honorarios_num: g('res-honorarios-num'), honorarios_letras: g('res-honorarios-letras'),
+      forma_pago: g('res-forma-pago'),
+      escribana: g('res-escribana'), plazo: g('res-plazo'),
+      escribana_dom: g('res-escribana-dom'), escribana_tel: g('res-escribana-tel'),
+      clausula_honorarios: g('res-clausula-honorarios'), clausula_reserva: g('res-clausula-reserva'),
+      clausula_entrega: g('res-clausula-entrega'), clausula_jurisdiccion: g('res-clausula-jurisdiccion')
+    };
+    titulo = 'Seña · ' + datos.comprador_nombre;
+  } else {
+    if (!g('ac-vendedor-nombre') || !g('ac-sena-num')) {
+      alert('Completá al menos el nombre del vendedor y el monto de la seña');
+      return;
+    }
+    datos = {
+      ciudad: g('ac-ciudad'), fecha: g('ac-fecha'),
+      vendedor_nombre: g('ac-vendedor-nombre'), vendedor_dni: g('ac-vendedor-dni'),
+      inmueble_dir: g('ac-inmueble-dir'), catastral: g('ac-catastral'),
+      sena_num: g('ac-sena-num'), sena_letras: g('ac-sena-letras'),
+      precio_num: g('ac-precio-num'), precio_letras: g('ac-precio-letras'),
+      escribana: g('ac-escribana'), plazo: g('ac-plazo'),
+      escribana_dom: g('ac-escribana-dom'), escribana_tel: g('ac-escribana-tel'),
+      notas: g('ac-notas'),
+      clausula_gastos: g('ac-clausula-gastos'), clausula_honorarios: g('ac-clausula-honorarios')
+    };
+    titulo = 'Aceptación · ' + datos.vendedor_nombre;
+  }
+
+  var id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+  var { error } = await sb.from('documentos_firma').insert({
+    id: id,
+    tipo: tipo,
+    titulo: titulo,
+    datos: datos,
+    estado: 'pendiente',
+    firma_nombre: null,
+    firma_dni: null,
+    firma_fecha: null,
+    firma_hora: null
+  });
+
+  if (error) {
+    console.error('Error guardando documento:', error);
+    alert('Error al generar el link. Verificá la tabla documentos_firma en Supabase.');
+    return;
+  }
+
+  var url = WEB_BASE + '/firmar.html?id=' + id;
+  navigator.clipboard.writeText(url).then(function() {
+    notify('🔗 Link de firma copiado al portapapeles');
+  }).catch(function() {
+    prompt('Copiá este link:', url);
+  });
+}
+
 function actualizarLetrasAC() {
   const sena = document.getElementById('ac-sena-num');
   const precio = document.getElementById('ac-precio-num');
@@ -5014,10 +5134,10 @@ function imprimirAceptacion() {
   <p>El precio convenido para la presente proposición de compra asciende a realizarse por la suma de DÓLARES ESTADOUNIDENSES BILLETES <strong>USD ${g('ac-precio-num')} (${g('ac-precio-letras')})</strong>, libre de gastos para el VENDEDOR, pagaderos de la siguiente forma: a la firma de la escritura, el monto de DÓLARES ESTADOUNIDENSES BILLETES <strong>USD ${g('ac-precio-num')} (${g('ac-precio-letras')})</strong>.</p>
   <div class="separador"></div>
 
-  <p>La escritura y honorarios del Escribano quedarán a cargo de la parte <strong>COMPRADORA, incluyendo sellados, honorarios y estado parcelario.</strong></p>
+  <p>${g('ac-clausula-gastos').replace(/\n/g, '<br>')}</p>
   <div class="separador"></div>
 
-  <p>Interviene en esta venta el Martillero y Corredor Público <strong>JORGE OSCAR VARELA</strong>, con Matrícula <strong>T°III F°103 N°865</strong> de la Prov. de Buenos Aires siendo sus honorarios pactados en su totalidad con el COMPRADOR.</p>
+  <p>${g('ac-clausula-honorarios').replace(/\n/g, '<br>')}</p>
   <div class="separador"></div>
 
   <p>La Escritura Traslativa de Dominio del inmueble referenciado será otorgada por ante la Escribana <strong>${g('ac-escribana')}</strong>, con oficina en ${g('ac-escribana-dom')}, Tel ${g('ac-escribana-tel')}, siendo su designación de carácter esencial y necesario para la venta, siendo el plazo de firma dentro de los ${g('ac-plazo')} días, contados a partir de la fecha de suscripción del presente acuerdo.</p>
@@ -5115,7 +5235,7 @@ function imprimirReserva() {
   <p>${g('res-forma-pago')}</p>
 
   <h2>Honorarios y Gastos</h2>
-  <p>Los gastos de escrituración, impuestos, sellados, honorarios profesionales y estado parcelario derivados de la operación ya se encuentran incluidos en valor de venta.</p>
+  <p>${g('res-clausula-honorarios').replace(/\n/g, '<br>')}</p>
   <p>Interviene en esta venta el Martillero y Corredor Público <strong>JORGE OSCAR VARELA</strong>, con Matrícula <strong>T°III F°103 N°865</strong> de la Prov. de Buenos Aires siendo sus honorarios pactados con el COMPRADOR de DÓLARES ESTADOUNIDENSES BILLETES <strong>USD ${g('res-honorarios-num')}</strong> (${g('res-honorarios-letras')}) pagaderos a la firma de la escritura.</p>
 
   <h2>Escrituración</h2>
@@ -5123,16 +5243,15 @@ function imprimirReserva() {
   <div class="separador"></div>
 
   <h2>Condiciones de la Reserva</h2>
-  <p>En caso de que el VENDEDOR no acepte la operación en las condiciones aquí establecidas, la suma entregada será reintegrada íntegramente al COMPRADOR, sin cargo alguno.</p>
-  <p>En caso de desistimiento por parte del COMPRADOR, la suma entregada quedará a favor de la INMOBILIARIA interviniente, en concepto de gastos, gestión y honorarios, sin derecho a reclamo alguno.</p>
+  <p>${g('res-clausula-reserva').replace(/\n/g, '<br>')}</p>
   <div class="separador"></div>
 
   <h2>Entrega y Estado del Inmueble</h2>
-  <p>El inmueble será entregado libre de deudas, impuestos, tasas, servicios y gravámenes, al día de la posesión, en el estado en que fue visitado y aceptado por el COMPRADOR. No incluye mobiliarios ni equipamientos.</p>
+  <p>${g('res-clausula-entrega').replace(/\n/g, '<br>')}</p>
   <div class="separador"></div>
 
   <h2>Jurisdicción</h2>
-  <p>Para cualquier cuestión judicial derivada del presente, las partes se someten a la jurisdicción de los Tribunales Ordinarios de Dolores, renunciando a cualquier otro fuero o jurisdicción.</p>
+  <p>${g('res-clausula-jurisdiccion').replace(/\n/g, '<br>')}</p>
   <p>En prueba de conformidad, se firman dos (2) ejemplares de un mismo tenor y a un solo efecto, en el lugar y fecha indicados al inicio.</p>
 
   <div class="firmas">

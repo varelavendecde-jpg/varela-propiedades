@@ -84,6 +84,10 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text)
   font-size: 12px;
   font-weight: 600;
 }
+.gallery-stamp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-18deg);font-size:42px;font-weight:900;padding:14px 44px;border-radius:10px;text-transform:uppercase;letter-spacing:5px;z-index:3;pointer-events:none;text-shadow:0 2px 10px rgba(0,0,0,0.4);}
+.gallery-stamp.reservada{color:#FF3B3B;border:5px solid #FF3B3B;background:rgba(0,0,0,0.5);box-shadow:0 0 30px rgba(255,59,59,0.3);}
+.gallery-stamp.vendida{color:var(--amarillo);border:5px solid var(--amarillo);background:rgba(0,0,0,0.5);box-shadow:0 0 30px rgba(245,230,66,0.3);}
+.gallery-stamp-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.2);z-index:2;}
 
 .thumbs {
   display: flex;
@@ -254,7 +258,7 @@ fbq('track', 'PageView');
 <body>
 
 <div class="header">
-  <a href="index.html"><img src="https://varelavendecde-jpg.github.io/varela-propiedades/logo-varela.png" alt="Varela Inmobiliaria" onerror="this.outerHTML='<span style=color:#F5E642;font-weight:700;font-size:16px>VARELA INMOBILIARIA</span>'"></a>
+  <a href="index.html"><img src="https://www.varelapropiedadescde.com.ar/logo-varela.png" alt="Varela Inmobiliaria" onerror="this.outerHTML='<span style=color:#F5E642;font-weight:700;font-size:16px>VARELA INMOBILIARIA</span>'"></a>
   <a href="index.html">← Ver todas las propiedades</a>
 </div>
 
@@ -338,6 +342,12 @@ async function cargarPropiedad() {
     galleryHtml += '<button class="gallery-btn next" onclick="cambiarSlide(1)">›</button>';
   }
   galleryHtml += '<div class="gallery-counter" id="counter">1 / ' + fotos.length + '</div>';
+  // Sello stamp para Reservada/Vendida
+  if (x.estado === 'Reservada' || x.estado === 'Reservado') {
+    galleryHtml += '<div class="gallery-stamp-overlay"></div><span class="gallery-stamp reservada">Reservada</span>';
+  } else if (x.estado === 'Vendida' || x.estado === 'Vendido') {
+    galleryHtml += '<div class="gallery-stamp-overlay"></div><span class="gallery-stamp vendida">Vendida</span>';
+  }
   document.getElementById('gallery').innerHTML = galleryHtml;
   document.getElementById('thumbs').innerHTML = thumbsHtml;
 
