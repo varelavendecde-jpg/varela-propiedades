@@ -4131,12 +4131,14 @@ async function guardarVisita() {
   // Enviar WhatsApp al propietario
   if (enviarWA && prop?.propietario_tel) {
     const fechaFormateada = new Date(fecha+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
-    const msg = `🏠 *Varela Inmobiliaria*\n\nEstimado/a *${prop.propietario_nombre}*, le informamos que hoy hemos realizado una visita a su propiedad junto a un posible comprador.\n\n🕐 *Horario:* ${hora} hs\n👤 *Agente:* ${agente||'Varela Inmobiliaria'}\n\nAnte cualquier novedad o consulta, nos estaremos comunicando.\nMuchas gracias! 🙏\n\n_Este es un mensaje automático de CRM Varela_`;
-    
+    const msg = `🏠 *Varela Inmobiliaria*\n\nEstimado/a *${prop.propietario_nombre}*, le informamos que el ${fechaFormateada} hemos realizado una visita a su propiedad *${prop.direccion || prop.titulo || ''}* junto a un posible comprador.\n\n🕐 *Horario:* ${hora} hs\n👤 *Agente:* ${agente||'Varela Inmobiliaria'}\n\nAnte cualquier novedad o consulta, nos estaremos comunicando.\nMuchas gracias! 🙏\n\n_Este es un mensaje automático de CRM Varela_`;
+
+    let telNorm = prop.propietario_tel.replace(/\D/g,'');
+    if (!telNorm.startsWith('54')) telNorm = '549' + telNorm;
     const waId = uid();
     await sb.from('mensajes_wa').insert({
       id: waId,
-      contacto_tel: prop.propietario_tel.replace(/\D/g,''),
+      contacto_tel: telNorm,
       mensaje: msg,
       estado: 'pendiente'
     });
@@ -6009,15 +6011,15 @@ async function verDetalleCampania(id) {
             <div class="mimg-label">Diseño</div>
             <div class="mimg-opts" id="mimg-diseno">
               <div class="mimg-opt active" data-diseno="A">Classic</div>
-              <div class="mimg-opt" data-diseno="B">Editorial</div>
-              <div class="mimg-opt" data-diseno="C">Ficha</div>
+              
+              <div class="mimg-opt" data-diseno="C">Estado</div>
             </div>
           </div>
           <div class="mimg-grupo">
             <div class="mimg-label">Formato</div>
             <div class="mimg-opts" id="mimg-formato">
-              <div class="mimg-opt active" data-formato="cuadrado">Cuadrado</div>
-              <div class="mimg-opt" data-formato="vertical">Vertical</div>
+              
+              <div class="mimg-opt active" data-formato="vertical">Vertical</div>
               <div class="mimg-opt" data-formato="historia">Historia</div>
             </div>
           </div>
@@ -6610,7 +6612,7 @@ function enviarWAContenidoIA() {
 
 const _mimg = {
   diseno: 'A',          // A | B | C
-  formato: 'cuadrado',  // cuadrado | vertical | historia
+  formato: 'vertical',  // cuadrado | vertical | historia
   fotoIdx: 0,
   fotoDataURL: null,    // cache de la foto convertida a base64
   fotoURLcache: '',     // URL que corresponde al dataURL cacheado
@@ -6622,17 +6624,16 @@ const _mimg = {
 const LOGO_URL = 'https://www.varelapropiedadescde.com.ar/logo-varela.png';
 
 const FORMATOS = {
-  cuadrado: { w: 1080, h: 1080, label: '1080×1080' },
-  vertical: { w: 1080, h: 1350, label: '1080×1350' },
+  vertical: { w: 1080, h: 1440, label: '1080×1440' },
   historia: { w: 1080, h: 1920, label: '1080×1920' },
 };
 
 function _mimgResetEstado() {
   _mimg.diseno = 'A';
-  _mimg.formato = 'cuadrado';
+  _mimg.formato = 'vertical';
   _mimg.fotoIdx = 0;
   document.querySelectorAll('#mimg-diseno .mimg-opt').forEach(x => x.classList.toggle('active', x.dataset.diseno === 'A'));
-  document.querySelectorAll('#mimg-formato .mimg-opt').forEach(x => x.classList.toggle('active', x.dataset.formato === 'cuadrado'));
+  document.querySelectorAll('#mimg-formato .mimg-opt').forEach(x => x.classList.toggle('active', x.dataset.formato === 'vertical'));
 }
 
 function _mimgEtiquetaOperacion() {
@@ -6836,69 +6837,94 @@ function _mimgBuildSVG() {
   const foto = _mimg.fotoDataURL || '';
   const fotos = _mimg.fotosDataURLs || [];
   const logo = _mimg.logoDataURL || '';
+  const estado = ((_mia.propiedad||{}).estado)||'';
 
-  if (_mimg.diseno === 'A') return _mimgSVG_A(W, H, { etiqueta, ubic, precio, datos, foto, fotos, logo });
-  if (_mimg.diseno === 'B') return _mimgSVG_B(W, H, { etiqueta, ubic, precio, datos, foto, fotos, logo });
-  if (_mimg.diseno === 'C') return _mimgSVG_C(W, H, { etiqueta, ubic, precio, datos, foto, fotos, logo });
+  if (_mimg.diseno === 'A') return _mimgSVG_A(W, H, { etiqueta, ubic, precio, datos, foto, fotos, logo, estado });
+  if (_mimg.diseno === 'B') return _mimgSVG_B(W, H, { etiqueta, ubic, precio, datos, foto, fotos, logo, estado });
+  if (_mimg.diseno === 'C') return _mimgSVG_C(W, H, { etiqueta, ubic, precio, datos, foto, fotos, logo, estado });
 }
 
 // ───── Diseño A: Classic (fondo amarillo, ficha oscura abajo) ─────
 function _mimgSVG_A(W, H, d) {
   const esHist = H > 1500;
-  const esVert = H > 1200 && H <= 1500;
-  const mX = Math.round(W * 0.06);
-  const topPad = esHist ? 70 : 50;
+  const mX = Math.round(W * 0.065), inW = W - mX * 2;
+  const AC = '#F2E84B', TEL = '2246 58 6030';
+  const DIR1 = 'Av. Interbalnearia 162', DIR2 = 'Costa del Este';
 
-  const etiFS = esHist ? 20 : 18;
-  const precioFS = esHist ? 88 : (esVert ? 76 : 66);
-  const ubicFS = esHist ? 30 : (esVert ? 26 : 23);
-  const datosFS = esHist ? 26 : (esVert ? 23 : 21);
-  const handleFS = esHist ? 18 : 15;
+  const fotos = (d.fotos && d.fotos.length) ? d.fotos : (d.foto ? [d.foto] : []);
+  const et = (d.etiqueta || '').toUpperCase();
+  const alq = et.indexOf('ALQUI') >= 0;
+  const op1 = 'SE ', op2 = alq ? 'ALQUILA' : 'VENDE';
+  const tipo = et.replace(' EN VENTA', '').replace(' EN ALQUILER', '').trim() || 'PROPIEDAD';
 
-  // Foto enmarcada con aire: ocupa franja central
-  const fotoY = topPad + (esHist ? 150 : 120);
-  const fotoH = esHist ? 1180 : (esVert ? 760 : 560);
-  const fotoW = W - mX * 2;
+  const topM = esHist ? 150 : 64;
+  const logoH = esHist ? 54 : 46, logoW = logoH * 3.6;
+  const eyeFS = esHist ? 26 : 22;
+  const hlFS = esHist ? 150 : 118;
+  const subFS = esHist ? 50 : 42;
+  const priceFS = esHist ? 82 : 68;
+  const chipFS = esHist ? 32 : 27, chipH = esHist ? 66 : 56;
+  const footH = esHist ? 100 : 88;
 
-  // Bloque de datos debajo de la foto
-  const datosTop = fotoY + fotoH + (esHist ? 90 : 64);
-  const etiY = datosTop;
-  const precioY = etiY + precioFS + (esHist ? 14 : 10);
-  const ubicY = precioY + ubicFS + (esHist ? 16 : 12);
-  const lineY = ubicY + (esHist ? 30 : 24);
-  const datosY = lineY + datosFS + (esHist ? 22 : 16);
-  const handleY = H - (esHist ? 60 : 44);
+  const eyeY = topM + logoH + (esHist ? 50 : 46);
+  const hlY = eyeY + (esHist ? 48 : 40) + hlFS;
+  const subY = hlY + subFS + (esHist ? 24 : 20);
+  const fotoTop = subY + (esHist ? 48 : 40);
+  const footY = H - topM - footH;
+  const chipsY = footY - (esHist ? 40 : 34) - chipH;
+  const priceY = chipsY - (esHist ? 26 : 22);
+  const fotoBottom = priceY - priceFS - (esHist ? 34 : 28);
 
-  // Multi-foto Historia: 2 fotos apiladas con gap 8px
-  const usarMulti = esHist && d.fotos && d.fotos.length >= 2;
-  const mitadH = Math.round((fotoH - 8) / 2);
-  const clipDefs = usarMulti
-    ? `<clipPath id="fclipA0"><rect x="${mX}" y="${fotoY}" width="${fotoW}" height="${mitadH}" rx="6"/></clipPath>
-       <clipPath id="fclipA1"><rect x="${mX}" y="${fotoY + mitadH + 8}" width="${fotoW}" height="${mitadH}" rx="6"/></clipPath>`
-    : `<clipPath id="fclipA"><rect x="${mX}" y="${fotoY}" width="${fotoW}" height="${fotoH}" rx="6"/></clipPath>`;
-  const fotosBlock = usarMulti
-    ? `<g clip-path="url(#fclipA0)"><image x="${mX}" y="${fotoY}" width="${fotoW}" height="${mitadH}" href="${d.fotos[0]}" preserveAspectRatio="xMidYMid slice"/></g>
-       <g clip-path="url(#fclipA1)"><image x="${mX}" y="${fotoY + mitadH + 8}" width="${fotoW}" height="${mitadH}" href="${d.fotos[1]}" preserveAspectRatio="xMidYMid slice"/></g>`
-    : `<g clip-path="url(#fclipA)">${d.foto ? `<image x="${mX}" y="${fotoY}" width="${fotoW}" height="${fotoH}" href="${d.foto}" preserveAspectRatio="xMidYMid slice"/>` : `<rect x="${mX}" y="${fotoY}" width="${fotoW}" height="${fotoH}" fill="#8A8790"/>`}</g>`;
+  // fotos: 2 en historia, 1 en feed
+  let fotosSVG = '', defsClip = '';
+  if (esHist && fotos.length >= 2) {
+    const gap = 20, ph = Math.round((fotoBottom - fotoTop - gap) / 2);
+    [[fotoTop, fotos[0]], [fotoTop + ph + gap, fotos[1]]].forEach((f, i) => {
+      defsClip += `<clipPath id="fA${i}"><rect x="${mX}" y="${f[0]}" width="${inW}" height="${ph}" rx="12"/></clipPath>`;
+      fotosSVG += `<g clip-path="url(#fA${i})"><image x="${mX}" y="${f[0]}" width="${inW}" height="${ph}" href="${f[1]}" preserveAspectRatio="xMidYMid slice"/></g>`;
+    });
+  } else {
+    const ph = fotoBottom - fotoTop;
+    defsClip = `<clipPath id="fA0"><rect x="${mX}" y="${fotoTop}" width="${inW}" height="${ph}" rx="12"/></clipPath>`;
+    fotosSVG = fotos[0] ? `<g clip-path="url(#fA0)"><image x="${mX}" y="${fotoTop}" width="${inW}" height="${ph}" href="${fotos[0]}" preserveAspectRatio="xMidYMid slice"/></g>` : `<rect x="${mX}" y="${fotoTop}" width="${inW}" height="${ph}" rx="12" fill="#3A3A3E"/>`;
+  }
 
-  const logoSVG = d.logo
-    ? `<image x="${mX}" y="${topPad}" width="210" height="58" href="${d.logo}" preserveAspectRatio="xMinYMid meet"/>`
-    : `<text x="${mX}" y="${topPad + 40}" font-family="VFraunces,serif" font-size="30" font-weight="600" fill="#4E4C52" letter-spacing="0.5">Varela Propiedades</text>`;
+  const partes = (d.datos || '').split('·').map(s => s.trim()).filter(Boolean).slice(0, 3);
+  let cx0 = mX, chipsSVG = '';
+  for (const p of partes) {
+    const w = p.length * chipFS * 0.56 + 34;
+    chipsSVG += `<rect x="${cx0}" y="${chipsY}" width="${w}" height="${chipH}" rx="11" fill="${d._chip||'#3C3C43'}" stroke="#ffffff" stroke-opacity="0.12"/><text x="${cx0 + w / 2}" y="${chipsY + chipH * 0.64}" text-anchor="middle" font-family="VInter,sans-serif" font-size="${chipFS}" fill="#EDEDEF">${p}</text>`;
+    cx0 += w + 16;
+  }
+
+  const waR = footH * 0.5, s = waR * 0.95 / 13;
+  const dFS = footH * 0.24;
+  const footSVG = `
+    <circle cx="${mX + waR}" cy="${footY + footH / 2}" r="${waR * 0.92}" fill="${AC}"/>
+    <path transform="translate(${mX + waR - 13 * s},${footY + footH / 2 - 13 * s}) scale(${s})" fill="#181818" d="M13 1C6.9 1 2 5.9 2 12c0 2.1.6 4 1.6 5.7L2 25l7.5-1.6C11.1 24.4 12 24.6 13 24.6 19.1 24.6 24 19.7 24 13.6 24 6.9 19.1 1 13 1Zm5.6 16.6c-.24.66-1.4 1.27-1.92 1.32-.5.05-1.1.24-3.7-.86-3.12-1.35-5.1-4.57-5.26-4.78-.15-.2-1.25-1.66-1.25-3.16 0-1.5.79-2.24 1.07-2.54.28-.3.6-.38.8-.38h.58c.2 0 .43-.04.66.5.24.58.82 2 .9 2.14.07.15.12.32.02.5-.1.2-.15.32-.3.5-.15.17-.32.39-.46.52-.15.15-.3.31-.13.6.17.3.76 1.25 1.63 2.02 1.12 1 2.07 1.31 2.36 1.46.3.15.47.12.64-.07.17-.2.74-.86.94-1.16.2-.3.4-.24.66-.15.28.1 1.75.83 2.05.98.3.15.5.22.57.34.07.13.07.73-.17 1.4Z"/>
+    <text x="${mX + waR * 2 + 20}" y="${footY + footH * 0.42}" font-family="VInter,sans-serif" font-size="${footH * 0.20}" font-weight="600" fill="#9A9AA0" letter-spacing="3">CONSULTAS</text>
+    <text x="${mX + waR * 2 + 18}" y="${footY + footH * 0.86}" font-family="VInter,sans-serif" font-size="${footH * 0.42}" font-weight="700" fill="${AC}">${TEL}</text>
+    <text x="${W - mX}" y="${footY + footH * 0.42}" text-anchor="end" font-family="VInter,sans-serif" font-size="${dFS}" font-weight="700" fill="#FFFFFF">${DIR1}</text>
+    <text x="${W - mX}" y="${footY + footH * 0.82}" text-anchor="end" font-family="VInter,sans-serif" font-size="${dFS}" font-weight="500" fill="#C7C7CC">${DIR2}</text>`;
+
+  const logoSVG = d.logo ? `<image x="${mX}" y="${topM}" width="${logoW}" height="${logoH}" href="${d.logo}" preserveAspectRatio="xMinYMid meet"/>` : '';
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
     <defs>
       <style>${FONT_FACE_CSS}</style>
-      ${clipDefs}
+      <radialGradient id="bgA" cx="20%" cy="0%" r="130%"><stop offset="0%" stop-color="${d._bg0||'#33333A'}"/><stop offset="70%" stop-color="${d._bg1||'#262629'}"/></radialGradient>
+      ${defsClip}
     </defs>
-    <rect width="${W}" height="${H}" fill="#F7F5E8"/>
+    <rect width="${W}" height="${H}" fill="url(#bgA)"/>
     ${logoSVG}
-    ${fotosBlock}
-    <text x="${mX}" y="${etiY}" font-family="VInter,sans-serif" font-size="${etiFS}" fill="#B59A00" letter-spacing="6" font-weight="600">${(d.etiqueta||'').toUpperCase()}</text>
-    <text x="${mX}" y="${precioY}" font-family="VFraunces,serif" font-size="${precioFS}" font-weight="600" fill="#4E4C52" letter-spacing="-1">${d.precio}</text>
-    <text x="${mX}" y="${ubicY}" font-family="VInter,sans-serif" font-size="${ubicFS}" fill="#4E4C52" fill-opacity="0.8" font-weight="400">${d.ubic}</text>
-    <line x1="${mX}" y1="${lineY}" x2="${mX + (esHist ? 80 : 64)}" y2="${lineY}" stroke="#FFD500" stroke-width="4"/>
-    <text x="${mX}" y="${datosY}" font-family="VInter,sans-serif" font-size="${datosFS}" fill="#4E4C52" fill-opacity="0.75" font-weight="400">${d.datos}</text>
-    <text x="${mX}" y="${handleY}" font-family="VInter,sans-serif" font-size="${handleFS}" fill="#4E4C52" fill-opacity="0.55" letter-spacing="3">@VARELAPROPIEDADESCDE</text>
+    <text x="${mX}" y="${eyeY}" font-family="VInter,sans-serif" font-size="${eyeFS}" font-weight="600" fill="${AC}" letter-spacing="7">OPORTUNIDAD</text>
+    <text x="${mX}" y="${hlY}" font-family="VInter,sans-serif" font-weight="600" font-size="${hlFS}" letter-spacing="-3"><tspan fill="${AC}">${op1}</tspan><tspan fill="#FFFFFF">${op2}</tspan></text>
+    <rect x="${mX}" y="${subY - subFS * 0.30}" width="46" height="6" fill="${AC}"/>
+    <text x="${mX + 64}" y="${subY}" font-family="VInter,sans-serif" font-size="${subFS}" font-weight="600" fill="${AC}" letter-spacing="3">${tipo}</text>
+    ${fotosSVG}
+    <text x="${mX}" y="${priceY}" font-family="VFraunces,serif" font-size="${priceFS}" font-weight="600" fill="${AC}" letter-spacing="-1">${d.precio}</text>
+    ${chipsSVG}
+    ${footSVG}
   </svg>`;
 }
 
@@ -6973,66 +6999,91 @@ function _mimgSVG_B(W, H, d) {
 function _mimgSVG_C(W, H, d) {
   const esHist = H > 1500;
   const esVert = H > 1200 && H <= 1500;
-  const mX = Math.round(W * 0.075);
+  const mX = Math.round(W * 0.06), inW = W - mX * 2;
+  const AC = '#F2E84B', TEL = '2246 58 6030';
+  const CAP1 = '¿Tu propiedad es la próxima?', CAP2 = 'Tasación profesional sin cargo';
 
-  const fotoH = esHist ? 1380 : (esVert ? 880 : 690);
+  const fotos = (d.fotos && d.fotos.length) ? d.fotos : (d.foto ? [d.foto] : []);
+  const estU = (d.estado || '').toString().toUpperCase();
+  const esVendida = /VENDID/.test(estU), esReserv = /RESERVAD/.test(estU);
+  const sello = esVendida ? 'VENDIDA' : (esReserv ? 'RESERVADA' : '');
 
-  const etiFS = esHist ? 20 : 18;
-  const precioFS = esHist ? 92 : (esVert ? 78 : 68);
-  const ubicFS = esHist ? 30 : (esVert ? 26 : 23);
-  const labelFS = esHist ? 17 : (esVert ? 15 : 14);
-  const numFS = esHist ? 40 : (esVert ? 34 : 30);
-  const pieFS = esHist ? 18 : 15;
+  const et = (d.etiqueta || '').toUpperCase();
+  const op = et.indexOf('ALQUI') >= 0 ? 'ALQUILER' : 'VENTA';
+  const tipo = et.replace(' EN VENTA', '').replace(' EN ALQUILER', '').trim() || 'PROPIEDAD';
 
-  const p = _mia.propiedad || {};
-  const amb = p.ambientes || '—';
-  const ban = p.banios || '—';
-  const cub = p.mts_cubiertos ? p.mts_cubiertos + ' m²' : '—';
-  const lote = p.mts ? p.mts + ' m²' : '—';
+  const topM = esHist ? 150 : Math.round(H * 0.05);
 
-  const bloqueY = fotoH + (esHist ? 90 : 64);
-  const etiY = bloqueY;
-  const precioY = etiY + precioFS + (esHist ? 14 : 10);
-  const ubicY = precioY + ubicFS + (esHist ? 16 : 12);
-  const lineY = ubicY + (esHist ? 34 : 26);
+  // fotos: hero (con sello) + secundaria en historia
+  let heroY, heroH, secY = 0, secH = 0, dosFotos = false;
+  if (esHist && fotos.length >= 2) {
+    heroY = topM; heroH = 720; secY = heroY + heroH + 20; secH = 360; dosFotos = true;
+  } else {
+    heroY = topM; heroH = esVert ? 760 : 560;
+  }
+  const blockTop = (dosFotos ? secY + secH : heroY + heroH) + (esHist ? 52 : 50);
 
-  // Grilla de specs: 4 columnas en una fila
-  const gridY = lineY + (esHist ? 60 : 48);
-  const colW = (W - mX * 2) / 4;
-  const specs = [['AMB', amb], ['BAÑOS', ban], ['CUB', cub], ['LOTE', lote]];
-  const gridSVG = specs.map(([label, val], i) => {
-    const cx = mX + colW * i + colW / 2;
-    return `<g text-anchor="middle" font-family="VInter,sans-serif">
-      <text x="${cx}" y="${gridY}" font-size="${labelFS}" fill="#4E4C52" fill-opacity="0.55" letter-spacing="2" font-weight="600">${label}</text>
-      <text x="${cx}" y="${gridY + numFS + 8}" font-size="${numFS}" font-weight="600" fill="#4E4C52">${_mimgEsc(val)}</text>
-    </g>`;
-  }).join('');
+  const eyeFS = esHist ? 26 : 24, precioFS = esHist ? 88 : (esVert ? 78 : 66), ubicFS = esHist ? 32 : 28, chipFS = esHist ? 32 : 26, chipH = esHist ? 64 : 54;
+  const eyeY = blockTop + eyeFS;
+  const precioY = eyeY + precioFS + (esHist ? 10 : 8);
+  const ubicY = precioY + ubicFS + (esHist ? 18 : 16);
+  const chipsY = ubicY + (esHist ? 26 : 22);
+  const footH = esHist ? 100 : 88, footY = H - topM - footH;
 
-  // Multi-foto Historia: 2 fotos apiladas con gap 8px (fondo crema cubre el hueco)
-  const usarMulti = esHist && d.fotos && d.fotos.length >= 2;
-  const mitadH = Math.round((fotoH - 8) / 2);
-  const fotoSVG = usarMulti
-    ? `<image x="0" y="0" width="${W}" height="${mitadH}" href="${d.fotos[0]}" preserveAspectRatio="xMidYMid slice"/>
-       <image x="0" y="${mitadH + 8}" width="${W}" height="${mitadH}" href="${d.fotos[1]}" preserveAspectRatio="xMidYMid slice"/>`
-    : d.foto
-      ? `<image x="0" y="0" width="${W}" height="${fotoH}" href="${d.foto}" preserveAspectRatio="xMidYMid slice"/>`
-      : `<rect x="0" y="0" width="${W}" height="${fotoH}" fill="#8A8790"/>`;
+  const clip = `<clipPath id="cH"><rect x="${mX}" y="${heroY}" width="${inW}" height="${heroH}" rx="12"/></clipPath>` +
+    (dosFotos ? `<clipPath id="cS"><rect x="${mX}" y="${secY}" width="${inW}" height="${secH}" rx="12"/></clipPath>` : '');
 
-  const logoSVG = d.logo
-    ? `<image x="${W - mX - 200}" y="${H - (esHist ? 80 : 60)}" width="200" height="50" href="${d.logo}" preserveAspectRatio="xMaxYMid meet"/>`
-    : '';
+  const heroImg = fotos[0]
+    ? `<image x="${mX}" y="${heroY}" width="${inW}" height="${heroH}" href="${fotos[0]}" preserveAspectRatio="xMidYMid slice"/>`
+    : `<rect x="${mX}" y="${heroY}" width="${inW}" height="${heroH}" fill="#3A3A3E"/>`;
+  const secImg = dosFotos ? `<g clip-path="url(#cS)"><image x="${mX}" y="${secY}" width="${inW}" height="${secH}" href="${fotos[1]}" preserveAspectRatio="xMidYMid slice"/></g>` : '';
+
+  let selloSVG = '';
+  if (sello) {
+    const cx = mX + inW / 2, cy = heroY + heroH / 2;
+    const sW = inW * 0.92, sH = esHist ? 140 : 118, sFS = esHist ? 86 : 74;
+    selloSVG = `<g transform="rotate(-16 ${cx} ${cy})"><rect x="${cx - sW / 2}" y="${cy - sH / 2}" width="${sW}" height="${sH}" rx="10" fill="${esVendida ? 'rgba(20,20,22,0.36)' : 'rgba(20,20,22,0.28)'}" stroke="${AC}" stroke-width="5"/><text x="${cx}" y="${cy + sFS * 0.34}" text-anchor="middle" font-family="VFraunces,serif" font-weight="600" font-size="${sFS}" fill="${AC}" letter-spacing="8">${sello}</text></g>`;
+  }
+
+  const pillW = op.length * 13 + 40, pillH = 44;
+  const pill = `<rect x="${mX + 22}" y="${heroY + 22}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" fill="${AC}"/><text x="${mX + 22 + pillW / 2}" y="${heroY + 22 + pillH * 0.66}" text-anchor="middle" font-family="VInter,sans-serif" font-size="20" font-weight="600" fill="#181818" letter-spacing="2">${op}</text>`;
+  const logoH = esHist ? 54 : 46, logoW = logoH * 3.6;
+  const logoSVG = d.logo ? `<image x="${mX + inW - logoW - 22}" y="${heroY + 22}" width="${logoW}" height="${logoH}" href="${d.logo}" preserveAspectRatio="xMaxYMid meet"/>` : '';
+
+  const partes = (d.datos || '').split('·').map(s => s.trim()).filter(Boolean).slice(0, 3);
+  let cx0 = mX, chipsSVG = '';
+  for (const p of partes) {
+    const w = p.length * chipFS * 0.56 + 34;
+    chipsSVG += `<rect x="${cx0}" y="${chipsY}" width="${w}" height="${chipH}" rx="11" fill="${d._chip||'#3C3C43'}" stroke="#ffffff" stroke-opacity="0.12"/><text x="${cx0 + w / 2}" y="${chipsY + chipH * 0.64}" text-anchor="middle" font-family="VInter,sans-serif" font-size="${chipFS}" fill="#EDEDEF">${p}</text>`;
+    cx0 += w + 16;
+  }
+
+  const waR = footH * 0.5, s = waR * 0.95 / 13;
+  const footSVG = `
+    <circle cx="${mX + waR}" cy="${footY + footH / 2}" r="${waR * 0.92}" fill="${AC}"/>
+    <path transform="translate(${mX + waR - 13 * s},${footY + footH / 2 - 13 * s}) scale(${s})" fill="#181818" d="M13 1C6.9 1 2 5.9 2 12c0 2.1.6 4 1.6 5.7L2 25l7.5-1.6C11.1 24.4 12 24.6 13 24.6 19.1 24.6 24 19.7 24 13.6 24 6.9 19.1 1 13 1Zm5.6 16.6c-.24.66-1.4 1.27-1.92 1.32-.5.05-1.1.24-3.7-.86-3.12-1.35-5.1-4.57-5.26-4.78-.15-.2-1.25-1.66-1.25-3.16 0-1.5.79-2.24 1.07-2.54.28-.3.6-.38.8-.38h.58c.2 0 .43-.04.66.5.24.58.82 2 .9 2.14.07.15.12.32.02.5-.1.2-.15.32-.3.5-.15.17-.32.39-.46.52-.15.15-.3.31-.13.6.17.3.76 1.25 1.63 2.02 1.12 1 2.07 1.31 2.36 1.46.3.15.47.12.64-.07.17-.2.74-.86.94-1.16.2-.3.4-.24.66-.15.28.1 1.75.83 2.05.98.3.15.5.22.57.34.07.13.07.73-.17 1.4Z"/>
+    <text x="${mX + waR * 2 + 20}" y="${footY + footH * 0.42}" font-family="VInter,sans-serif" font-size="${footH * 0.20}" font-weight="600" fill="#9A9AA0" letter-spacing="3">CONSULTAS</text>
+    <text x="${mX + waR * 2 + 18}" y="${footY + footH * 0.86}" font-family="VInter,sans-serif" font-size="${footH * 0.42}" font-weight="700" fill="${AC}">${TEL}</text>
+    <text x="${W - mX}" y="${footY + footH * 0.42}" text-anchor="end" font-family="VFraunces,serif" font-size="${footH * 0.30}" font-weight="600" fill="#FFFFFF">${CAP1}</text>
+    <text x="${W - mX}" y="${footY + footH * 0.82}" text-anchor="end" font-family="VInter,sans-serif" font-size="${footH * 0.22}" fill="#B8B8BD">${CAP2}</text>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
-    <defs><style>${FONT_FACE_CSS}</style></defs>
-    <rect width="${W}" height="${H}" fill="#F7F5E8"/>
-    ${fotoSVG}
-    <text x="${mX}" y="${etiY}" font-family="VInter,sans-serif" font-size="${etiFS}" fill="#B59A00" letter-spacing="6" font-weight="600">${(d.etiqueta||'').toUpperCase()}</text>
-    <text x="${mX}" y="${precioY}" font-family="VFraunces,serif" font-size="${precioFS}" font-weight="600" fill="#4E4C52" letter-spacing="-1">${d.precio}</text>
-    <text x="${mX}" y="${ubicY}" font-family="VInter,sans-serif" font-size="${ubicFS}" fill="#4E4C52" fill-opacity="0.8">${d.ubic}</text>
-    <line x1="${mX}" y1="${lineY}" x2="${W - mX}" y2="${lineY}" stroke="#4E4C52" stroke-width="1.5" stroke-opacity="0.18"/>
-    ${gridSVG}
-    <text x="${mX}" y="${H - (esHist ? 60 : 44)}" font-family="VInter,sans-serif" font-size="${pieFS}" fill="#4E4C52" fill-opacity="0.6" letter-spacing="2" font-weight="600">VARELA PROPIEDADES · COSTA DEL ESTE</text>
+    <defs>
+      <style>${FONT_FACE_CSS}</style>
+      <radialGradient id="bgC" cx="50%" cy="0%" r="120%"><stop offset="0%" stop-color="${d._bg0||'#33333A'}"/><stop offset="72%" stop-color="${d._bg1||'#262629'}"/></radialGradient>
+      <linearGradient id="scC" x1="0" y1="0" x2="0" y2="1"><stop offset="55%" stop-color="#141416" stop-opacity="0"/><stop offset="100%" stop-color="#141416" stop-opacity="0.55"/></linearGradient>
+      ${clip}
+    </defs>
+    <rect width="${W}" height="${H}" fill="url(#bgC)"/>
+    <g clip-path="url(#cH)">${heroImg}<rect x="${mX}" y="${heroY}" width="${inW}" height="${heroH}" fill="url(#scC)"/>${selloSVG}</g>
+    ${secImg}
+    ${pill}
     ${logoSVG}
+    <text x="${mX}" y="${eyeY}" font-family="VInter,sans-serif" font-size="${eyeFS}" font-weight="600" fill="#9A9AA0" letter-spacing="6">${tipo}</text>
+    <text x="${mX}" y="${precioY}" font-family="VFraunces,serif" font-size="${precioFS}" font-weight="600" fill="${AC}" letter-spacing="-1">${d.precio}</text>
+    <text x="${mX}" y="${ubicY}" font-family="VInter,sans-serif" font-size="${ubicFS}" fill="#C7C7CC">${d.ubic}</text>
+    ${chipsSVG}
+    ${footSVG}
   </svg>`;
 }
 
