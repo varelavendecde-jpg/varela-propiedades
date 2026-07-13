@@ -900,6 +900,23 @@ function aplicarFiltros() {
     return true;
   });
   renderPropiedades(filtered);
+  syncURL();
+}
+
+function syncURL() {
+  const p = new URLSearchParams();
+  const tipo = document.getElementById('f-tipo').value;
+  const zona = document.getElementById('f-zona').value;
+  const precio = document.getElementById('f-precio').value;
+  const amb = document.getElementById('f-amb').value;
+
+  if (tipo)   p.set('tipo', tipo);
+  if (zona)   p.set('zona', zona);
+  if (precio) p.set('precio', precio);
+  if (amb)    p.set('ambientes', amb);
+
+  const qs = p.toString();
+  history.replaceState(null, '', qs ? `?${qs}#propiedades` : `${location.pathname}#propiedades`);
 }
 
 function limpiarFiltros() {
@@ -907,7 +924,7 @@ function limpiarFiltros() {
   document.getElementById('f-zona').value = '';
   document.getElementById('f-precio').value = '';
   document.getElementById('f-amb').value = '';
-  renderPropiedades(todasProps);
+  aplicarFiltros();
 }
 
 // === FICHA: mantenemos la lógica original ===
@@ -1144,6 +1161,19 @@ setupTelInputs('c-tel-codigo', 'c-tel-numero', 'c-tel-error');
 cargarPropiedades().then(() => {
   const params = new URLSearchParams(window.location.search);
   const propId = params.get('propiedad');
+
+  const fTipo = params.get('tipo');
+  const fZona = params.get('zona');
+  const fPrecio = params.get('precio');
+  const fAmb = params.get('ambientes');
+  if (fTipo || fZona || fPrecio || fAmb) {
+    if (fTipo)   document.getElementById('f-tipo').value = fTipo;
+    if (fZona)   document.getElementById('f-zona').value = fZona;
+    if (fPrecio) document.getElementById('f-precio').value = fPrecio;
+    if (fAmb)    document.getElementById('f-amb').value = fAmb;
+    aplicarFiltros();
+  }
+
   if (propId) {
     const existe = todasProps.find(x => x.id === propId);
     if (existe) {
